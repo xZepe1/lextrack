@@ -435,6 +435,15 @@ canvas{max-width:100%;}
         <option value="suspendida">Suspendida</option>
         <option value="archivada">Archivada</option>
       </select>
+      <select class="filter-select" id="filter-localidad" onchange="renderCausas()">
+        <option value="">Todas las localidades</option>
+      </select>
+      <select class="filter-select" id="sort-causas" onchange="renderCausas()">
+        <option value="urgencia">Ordenar: Urgencia</option>
+        <option value="localidad">Ordenar: Localidad</option>
+        <option value="caratula">Ordenar: Carátula</option>
+        <option value="fecha">Ordenar: Fecha carga</option>
+      </select>
     </div>
     <div id="causas-list"></div>
   </div>
@@ -566,6 +575,7 @@ canvas{max-width:100%;}
       <div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="mc-estado"><option value="activa">Activa</option><option value="en_tramite">En trámite</option><option value="suspendida">Suspendida</option><option value="archivada">Archivada</option></select></div>
       <div class="form-group"><label class="form-label">Responsable / Abogado</label><input type="text" class="form-input" id="mc-responsable" placeholder="Nombre del abogado a cargo"></div>
       <div class="form-group"><label class="form-label">Etapa procesal</label><input type="text" class="form-input" id="mc-etapa" placeholder="Ej: Apertura a prueba"></div>
+      <div class="form-group span2"><label class="form-label">Localidad (PBA)</label><select class="form-select" id="mc-localidad"><option value="">— Sin especificar —</option></select></div>
       <div class="form-group span2"><label class="form-label">Notas / Observaciones</label><textarea class="form-textarea" id="mc-notas" placeholder="Observaciones, estrategia, notas internas..."></textarea></div>
     </div>
     <div class="modal-footer">
@@ -714,7 +724,7 @@ canvas{max-width:100%;}
       </div>
       <div class="form-group span2">
         <label class="form-label">Contenido del escrito *</label>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Variables disponibles: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{caratula}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{numero}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{actora}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{demandada}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{juzgado}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{responsable}</code></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Variables disponibles: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{caratula}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{numero}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{actora}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{demandada}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{juzgado}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{responsable}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{localidad}</code></div>
         <textarea class="form-textarea" id="mpl-contenido" placeholder="Ingrese el texto del escrito. Use las variables entre llaves para que se completen automáticamente con los datos de cada causa..." style="min-height:200px;font-family:'IBM Plex Mono',monospace;font-size:12px;"></textarea>
       </div>
     </div>
@@ -731,6 +741,60 @@ const CLIENT_ID = '604855232321-hah4j4jivl6r66s18hspa91jbq22li5q.apps.googleuser
 const SHEET_ID  = '1ZZtoSbPsGIzIGeBWNl1KwoUWpyvbzb46EV9ms2JEvoc';
 const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
 const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas' };
+
+// Localidades PBA agrupadas por departamento judicial
+const LOCALIDADES_PBA = [
+  // Departamento La Plata
+  'La Plata','Berisso','Ensenada','Brandsen','Cañuelas','General Paz','Lobos','Magdalena','Punta Indio','San Vicente',
+  // Departamento Quilmes
+  'Quilmes','Avellaneda','Berazategui','Florencio Varela','Lanús','Lomas de Zamora','Almirante Brown',
+  // Departamento Lomas de Zamora
+  'Esteban Echeverría','Ezeiza','Presidente Perón','San Vicente',
+  // Departamento Morón
+  'Morón','Hurlingham','Ituzaingó','Merlo','Moreno','General Rodríguez','Marcos Paz',
+  // Departamento San Martín
+  'San Martín','Tres de Febrero','San Miguel','Malvinas Argentinas','José C. Paz','Tigre','San Isidro','San Fernando','Vicente López',
+  // Departamento Zárate
+  'Zárate','Campana','Escobar','Pilar','Exaltación de la Cruz',
+  // Departamento Mercedes
+  'Mercedes','General Las Heras','Luján','San Andrés de Giles','Suipacha','Carmen de Areco',
+  // Departamento Junín
+  'Junín','Chacabuco','General Arenales','General Viamonte','Leandro N. Alem','Lincoln','Rojas',
+  // Departamento Pergamino
+  'Pergamino','Ramallo','San Nicolás','San Pedro',
+  // Departamento San Isidro
+  'San Isidro',
+  // Departamento Moreno
+  'Moreno',
+  // Departamento Necochea
+  'Necochea','Lobería','San Cayetano',
+  // Departamento Mar del Plata
+  'Mar del Plata','Balcarce','General Alvarado','General Pueyrredón','Mar Chiquita','Villa Gesell','Pinamar','General Madariaga',
+  // Departamento Dolores
+  'Dolores','Castelli','Chascomús','General Belgrano','General Guido','Maipú','Pila','Tordillo',
+  // Departamento Azul
+  'Azul','Benito Juárez','Las Flores','Olavarría','Rauch','Tandil','Tapalqué',
+  // Departamento Bahía Blanca
+  'Bahía Blanca','Coronel Rosales','Coronel Dorrego','Monte Hermoso','Villarino','Patagones',
+  // Departamento Trenque Lauquen
+  'Trenque Lauquen','Carlos Tejedor','Daireaux','General Viamonte','Hipólito Yrigoyen','Pellegrini','Rivadavia','Salliqueló','Tres Lomas',
+  // Departamento Pehuajó
+  'Pehuajó','Bolívar','Carlos Casares','General La Madrid','Guaminí','Nueve de Julio',
+  // Departamento Bragado
+  'Bragado','Alberti','General Arenales',
+  // Departamento Chivilcoy
+  'Chivilcoy','Alberti','Bragado','San Andrés de Giles',
+  // Departamento Coronel Suárez
+  'Coronel Suárez','Adolfo Alsina','Coronel Pringles','Puán','Saavedra',
+  // Departamento Tres Arroyos
+  'Tres Arroyos','Coronel Dorrego',
+  // Departamento Tandil
+  'Tandil',
+  // Departamento San Justo
+  'San Justo','La Matanza',
+  // Departamento Florencio Varela
+  'Florencio Varela',
+].filter((v, i, a) => a.indexOf(v) === i).sort();  // deduplicate and sort
 
 // ══════════════════ STATE ══════════════════
 let accessToken = null;
@@ -965,8 +1029,8 @@ async function ensureSheets(){
 }
 
 // ══════════════════ SERIALIZATION ══════════════════
-function rowToCausa(r){if(!r[0])return null;return{id:r[0],caratula:r[1]||'',numero:r[2]||'',jurisdiccion:r[3]||'PBA',fuero:r[4]||'civil',juzgado:r[5]||'',actora:r[6]||'',demandada:r[7]||'',urgencia:r[8]||'media',estado:r[9]||'activa',responsable:r[10]||'',etapa:r[11]||'',notas:r[12]||'',movimientos:safeJSON(r[13],[]),fechaCreacion:r[14]||''};}
-function causaToRow(c){return[c.id,c.caratula,c.numero,c.jurisdiccion,c.fuero,c.juzgado,c.actora,c.demandada,c.urgencia,c.estado,c.responsable,c.etapa,c.notas,JSON.stringify(c.movimientos||[]),c.fechaCreacion];}
+function rowToCausa(r){if(!r[0])return null;return{id:r[0],caratula:r[1]||'',numero:r[2]||'',jurisdiccion:r[3]||'PBA',fuero:r[4]||'civil',juzgado:r[5]||'',actora:r[6]||'',demandada:r[7]||'',urgencia:r[8]||'media',estado:r[9]||'activa',responsable:r[10]||'',etapa:r[11]||'',notas:r[12]||'',movimientos:safeJSON(r[13],[]),fechaCreacion:r[14]||'',localidad:r[15]||''};}
+function causaToRow(c){return[c.id,c.caratula,c.numero,c.jurisdiccion,c.fuero,c.juzgado,c.actora,c.demandada,c.urgencia,c.estado,c.responsable,c.etapa,c.notas,JSON.stringify(c.movimientos||[]),c.fechaCreacion,c.localidad||''];}
 function rowToAud(r){if(!r[0])return null;return{id:r[0],fecha:r[1]||'',hora:r[2]||'',tipo:r[3]||'',descripcion:r[4]||'',notas:r[5]||'',causaId:r[6]||''};}
 function audToRow(a){return[a.id,a.fecha,a.hora,a.tipo,a.descripcion,a.notas,a.causaId];}
 function rowToAlerta(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',fecha:r[2]||'',descripcion:r[3]||'',causaId:r[4]||'',cumplida:r[5]==='true'};}
@@ -985,7 +1049,7 @@ function safeJSON(s,f){try{return JSON.parse(s||'');}catch{return f;}}
 async function loadAllData(){
   try{
     const [rc,ra,ral,rt,rcat,rh,rpl]=await Promise.all([
-      sheetsGet(`${TABS.causas}!A2:O`),sheetsGet(`${TABS.audiencias}!A2:G`),sheetsGet(`${TABS.alertas}!A2:F`),
+      sheetsGet(`${TABS.causas}!A2:P`),sheetsGet(`${TABS.audiencias}!A2:G`),sheetsGet(`${TABS.alertas}!A2:F`),
       sheetsGet(`${TABS.tareas}!A2:H`),sheetsGet(`${TABS.cautelares}!A2:H`),sheetsGet(`${TABS.honorarios}!A2:G`),sheetsGet(`${TABS.plantillas}!A2:D`),
     ]);
     state.causas=(rc.values||[]).map(rowToCausa).filter(Boolean);
@@ -1013,7 +1077,7 @@ async function syncAll(){
   }
 }
 
-async function writeCausas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.causas}!A1:O`);await sheetsUpdate(`${TABS.causas}!A1`,[['id','caratula','numero','jurisdiccion','fuero','juzgado','actora','demandada','urgencia','estado','responsable','etapa','notas','movimientos','fechaCreacion'],...state.causas.map(causaToRow)]);setSyncStatus('ok');}catch(e){toast('Error: '+e.message,'error');setSyncStatus('error');}}
+async function writeCausas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.causas}!A1:P`);await sheetsUpdate(`${TABS.causas}!A1`,[['id','caratula','numero','jurisdiccion','fuero','juzgado','actora','demandada','urgencia','estado','responsable','etapa','notas','movimientos','fechaCreacion','localidad'],...state.causas.map(causaToRow)]);setSyncStatus('ok');}catch(e){toast('Error: '+e.message,'error');setSyncStatus('error');}}
 async function writeAudiencias(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.audiencias}!A1:G`);await sheetsUpdate(`${TABS.audiencias}!A1`,[['id','fecha','hora','tipo','descripcion','notas','causaId'],...state.audiencias.map(audToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 async function writeAlertas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.alertas}!A1:F`);await sheetsUpdate(`${TABS.alertas}!A1`,[['id','titulo','fecha','descripcion','causaId','cumplida'],...state.alertas.map(alertaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 async function writeTareas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.tareas}!A1:H`);await sheetsUpdate(`${TABS.tareas}!A1`,[['id','titulo','responsable','fecha','prioridad','causaId','descripcion','completada'],...state.tareas.map(tareaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
@@ -1033,6 +1097,42 @@ function navigate(page){
   state.currentPage=page;
   renderPage(page);
 }
+function causaItemHTML(c){
+  const tareasC=state.tareas.filter(t=>t.causaId===c.id&&!t.completada).length;
+  const cautelaresC=state.cautelares.filter(ct=>ct.causaId===c.id&&!ct.levantada).length;
+  return`<div class="causa-item" onclick="showCausa('${c.id}')">
+    <div style="padding-top:4px"><div class="causa-fuero-dot" style="background:${fueroColor(c.fuero)}"></div></div>
+    <div>
+      <div class="causa-numero">${c.numero||'Sin número'} <span class="jurisdiccion-badge">${c.jurisdiccion}</span>${c.localidad?` <span class="tag" style="font-size:10px">📍 ${c.localidad}</span>`:''}</div>
+      <div class="causa-caratula">${c.caratula}</div>
+      <div class="causa-meta">
+        <span><span class="fuero-badge ${fueroClass(c.fuero)}">${fueroLabel(c.fuero)}</span></span>
+        ${c.juzgado?`<span>🏛️ ${c.juzgado}</span>`:''}
+        ${c.etapa?`<span>📍 ${c.etapa}</span>`:''}
+        ${c.responsable?`<span>👤 ${c.responsable}</span>`:''}
+        <span class="estado-badge estado-${c.estado}">${estadoLabel(c.estado)}</span>
+        ${tareasC>0?`<span style="color:var(--purple)">✓ ${tareasC} tarea${tareasC>1?'s':''}</span>`:''}
+        ${cautelaresC>0?`<span style="color:var(--orange)">🛡 ${cautelaresC} cautelar${cautelaresC>1?'es':''}</span>`:''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <span class="urgency-badge urgency-${c.urgencia}">${c.urgencia}</span>
+    </div>
+  </div>`;
+}
+
+function populateLocalidadSelects(){
+  const opts = '<option value="">— Sin especificar —</option>' + LOCALIDADES_PBA.map(l=>`<option value="${l}">${l}</option>`).join('');
+  const mc = document.getElementById('mc-localidad');
+  if(mc) mc.innerHTML = opts;
+  const fl = document.getElementById('filter-localidad');
+  if(fl){
+    // Only show localidades actually used in loaded causas, plus all option
+    const usadas = [...new Set(state.causas.map(c=>c.localidad).filter(Boolean))].sort();
+    fl.innerHTML = '<option value="">Todas las localidades</option>' + usadas.map(l=>`<option value="${l}">${l}</option>`).join('');
+  }
+}
+
 function renderPage(p){
   if(p==='dashboard')renderDashboard();
   else if(p==='causas')renderCausas();
@@ -1138,48 +1238,60 @@ function renderDashboard(){
 
 // ══════════════════ CAUSAS ══════════════════
 function renderCausas(){
+  populateLocalidadSelects();
   const search=document.getElementById('search-causas')?.value?.toLowerCase()||'';
   const fuero=document.getElementById('filter-fuero')?.value||'';
   const jur=document.getElementById('filter-jurisdiccion')?.value||'';
   const urg=document.getElementById('filter-urgencia')?.value||'';
   const est=document.getElementById('filter-estado')?.value||'';
+  const localidad=document.getElementById('filter-localidad')?.value||'';
+  const sort=document.getElementById('sort-causas')?.value||'urgencia';
+
   let list=state.causas.filter(c=>{
     if(fuero&&c.fuero!==fuero)return false;
     if(jur&&c.jurisdiccion!==jur)return false;
     if(urg&&c.urgencia!==urg)return false;
     if(est&&c.estado!==est)return false;
-    if(search){const hay=[c.caratula,c.numero,c.actora,c.demandada,c.juzgado].join(' ').toLowerCase();if(!hay.includes(search))return false;}
+    if(localidad&&c.localidad!==localidad)return false;
+    if(search){const hay=[c.caratula,c.numero,c.actora,c.demandada,c.juzgado,c.localidad].join(' ').toLowerCase();if(!hay.includes(search))return false;}
     return true;
   });
+
   const urgOrd={alta:0,media:1,baja:2};
-  list.sort((a,b)=>(urgOrd[a.urgencia]||1)-(urgOrd[b.urgencia]||1));
+  if(sort==='urgencia'){
+    list.sort((a,b)=>(urgOrd[a.urgencia]||1)-(urgOrd[b.urgencia]||1));
+  } else if(sort==='localidad'){
+    list.sort((a,b)=>{
+      const la=a.localidad||'ZZZZ', lb=b.localidad||'ZZZZ';
+      return la.localeCompare(lb,'es');
+    });
+  } else if(sort==='caratula'){
+    list.sort((a,b)=>a.caratula.localeCompare(b.caratula,'es'));
+  } else if(sort==='fecha'){
+    list.sort((a,b)=>b.fechaCreacion.localeCompare(a.fechaCreacion));
+  }
+
   const cl=document.getElementById('causas-count-label');
   if(cl)cl.textContent=`${list.length} causa${list.length!==1?'s':''} encontrada${list.length!==1?'s':''}`;
   const container=document.getElementById('causas-list');
   if(!list.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">⚖️</div><div class="empty-title">No hay causas que coincidan</div><div class="empty-sub">Ajustá los filtros o cargá una nueva causa</div></div>`;return;}
-  container.innerHTML=list.map(c=>{
-    const tareasC=state.tareas.filter(t=>t.causaId===c.id&&!t.completada).length;
-    const cautelaresC=state.cautelares.filter(ct=>ct.causaId===c.id&&!ct.levantada).length;
-    return`<div class="causa-item" onclick="showCausa('${c.id}')">
-      <div style="padding-top:4px"><div class="causa-fuero-dot" style="background:${fueroColor(c.fuero)}"></div></div>
-      <div>
-        <div class="causa-numero">${c.numero||'Sin número'} <span class="jurisdiccion-badge">${c.jurisdiccion}</span></div>
-        <div class="causa-caratula">${c.caratula}</div>
-        <div class="causa-meta">
-          <span><span class="fuero-badge ${fueroClass(c.fuero)}">${fueroLabel(c.fuero)}</span></span>
-          ${c.juzgado?`<span>🏛️ ${c.juzgado}</span>`:''}
-          ${c.etapa?`<span>📍 ${c.etapa}</span>`:''}
-          ${c.responsable?`<span>👤 ${c.responsable}</span>`:''}
-          <span class="estado-badge estado-${c.estado}">${estadoLabel(c.estado)}</span>
-          ${tareasC>0?`<span style="color:var(--purple)">✓ ${tareasC} tarea${tareasC>1?'s':''}</span>`:''}
-          ${cautelaresC>0?`<span style="color:var(--orange)">🛡 ${cautelaresC} cautelar${cautelaresC>1?'es':''}</span>`:''}
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        <span class="urgency-badge urgency-${c.urgencia}">${c.urgencia}</span>
-      </div>
-    </div>`;
-  }).join('');
+
+  // When sorted by localidad, group by localidad
+  if(sort==='localidad'){
+    let html='';
+    let lastLoc='';
+    list.forEach(c=>{
+      const loc=c.localidad||'Sin localidad';
+      if(loc!==lastLoc){
+        html+=`<div class="agenda-day-header" style="margin-top:${lastLoc?'20px':'0'}">${loc}</div>`;
+        lastLoc=loc;
+      }
+      html+=causaItemHTML(c);
+    });
+    container.innerHTML=html;
+  } else {
+    container.innerHTML=list.map(causaItemHTML).join('');
+  }
 }
 
 function showCausa(causaId){
@@ -1217,6 +1329,7 @@ function showCausa(causaId){
         <div><div class="detail-field-label">Parte demandada</div><div class="detail-field-value">${c.demandada||'—'}</div></div>
         <div><div class="detail-field-label">Etapa procesal</div><div class="detail-field-value">${c.etapa||'—'}</div></div>
         <div><div class="detail-field-label">Responsable</div><div class="detail-field-value">${c.responsable||'—'}</div></div>
+        <div><div class="detail-field-label">Localidad (PBA)</div><div class="detail-field-value">${c.localidad||'—'}</div></div>
       </div>
       ${c.notas?`<div><div class="detail-field-label" style="margin-bottom:6px">Notas internas</div><div style="background:var(--surface2);border-radius:6px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6">${c.notas}</div></div>`:''}
     </div>
@@ -1315,6 +1428,8 @@ function editCausa(causaId){
   document.getElementById('mc-fuero').value=c.fuero||'civil';
   document.getElementById('mc-urgencia').value=c.urgencia||'media';
   document.getElementById('mc-estado').value=c.estado||'activa';
+  populateLocalidadSelects();
+  document.getElementById('mc-localidad').value=c.localidad||'';
   document.getElementById('modal-causa').classList.add('open');
 }
 
@@ -1658,7 +1773,8 @@ function renderPlantillaPreview(plantillaId){
       .replace(/\{juzgado\}/g,c.juzgado||'')
       .replace(/\{responsable\}/g,c.responsable||'')
       .replace(/\{etapa\}/g,c.etapa||'')
-      .replace(/\{jurisdiccion\}/g,c.jurisdiccion||'');
+      .replace(/\{jurisdiccion\}/g,c.jurisdiccion||'')
+      .replace(/\{localidad\}/g,c.localidad||'');
   }
   document.getElementById('up-preview').value=texto;
 }
@@ -1849,6 +1965,8 @@ function openModalCausa(){
   document.getElementById('mc-fuero').value='civil';
   document.getElementById('mc-urgencia').value='media';
   document.getElementById('mc-estado').value='activa';
+  populateLocalidadSelects();
+  document.getElementById('mc-localidad').value='';
   document.getElementById('modal-causa').classList.add('open');
 }
 function openModalAudiencia(prefill){
@@ -1928,10 +2046,10 @@ async function saveCausa(){
   try{
     if(state.editingCausaId){
       const c=state.causas.find(x=>x.id===state.editingCausaId);
-      if(c){c.caratula=caratula;['numero','juzgado','actora','demandada','responsable','etapa','notas'].forEach(f=>c[f]=document.getElementById('mc-'+f).value.trim());c.jurisdiccion=document.getElementById('mc-jurisdiccion').value;c.fuero=document.getElementById('mc-fuero').value;c.urgencia=document.getElementById('mc-urgencia').value;c.estado=document.getElementById('mc-estado').value;}
+      if(c){c.caratula=caratula;['numero','juzgado','actora','demandada','responsable','etapa','notas'].forEach(f=>c[f]=document.getElementById('mc-'+f).value.trim());c.jurisdiccion=document.getElementById('mc-jurisdiccion').value;c.fuero=document.getElementById('mc-fuero').value;c.urgencia=document.getElementById('mc-urgencia').value;c.estado=document.getElementById('mc-estado').value;c.localidad=document.getElementById('mc-localidad').value;}
       await writeCausas();closeModal('modal-causa');toast('Causa actualizada ✓','success');showCausa(state.editingCausaId);
     }else{
-      const c={id:uid(),caratula,numero:document.getElementById('mc-numero').value.trim(),jurisdiccion:document.getElementById('mc-jurisdiccion').value,fuero:document.getElementById('mc-fuero').value,juzgado:document.getElementById('mc-juzgado').value.trim(),actora:document.getElementById('mc-actora').value.trim(),demandada:document.getElementById('mc-demandada').value.trim(),urgencia:document.getElementById('mc-urgencia').value,estado:document.getElementById('mc-estado').value,responsable:document.getElementById('mc-responsable').value.trim(),etapa:document.getElementById('mc-etapa').value.trim(),notas:document.getElementById('mc-notas').value.trim(),movimientos:[],fechaCreacion:todayISO()};
+      const c={id:uid(),caratula,numero:document.getElementById('mc-numero').value.trim(),jurisdiccion:document.getElementById('mc-jurisdiccion').value,fuero:document.getElementById('mc-fuero').value,juzgado:document.getElementById('mc-juzgado').value.trim(),actora:document.getElementById('mc-actora').value.trim(),demandada:document.getElementById('mc-demandada').value.trim(),urgencia:document.getElementById('mc-urgencia').value,estado:document.getElementById('mc-estado').value,responsable:document.getElementById('mc-responsable').value.trim(),etapa:document.getElementById('mc-etapa').value.trim(),notas:document.getElementById('mc-notas').value.trim(),localidad:document.getElementById('mc-localidad').value,movimientos:[],fechaCreacion:todayISO()};
       state.causas.push(c);await writeCausas();closeModal('modal-causa');toast('Causa guardada ✓','success');navigate('causas');
     }
     updateBadges();
