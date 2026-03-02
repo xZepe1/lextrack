@@ -7,275 +7,285 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #0e0f13;
-    --surface: #161820;
-    --surface2: #1e2029;
-    --surface3: #262834;
-    --border: #2e3044;
-    --border2: #3a3d55;
-    --gold: #c9a84c;
-    --gold2: #e8c96a;
-    --gold-dim: rgba(201,168,76,0.12);
-    --text: #e8e9f0;
-    --text2: #9a9db5;
-    --text3: #5a5d75;
-    --red: #e05a5a;
-    --red-dim: rgba(224,90,90,0.12);
-    --orange: #e0935a;
-    --orange-dim: rgba(224,147,90,0.12);
-    --green: #5aae8a;
-    --green-dim: rgba(90,174,138,0.12);
-    --blue: #5a8ae0;
-    --blue-dim: rgba(90,138,224,0.12);
-    --purple: #a05ae0;
-    --purple-dim: rgba(160,90,224,0.12);
-    --teal: #5ac8d8;
-    --teal-dim: rgba(90,200,216,0.12);
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+:root {
+  --bg:#0e0f13; --surface:#161820; --surface2:#1e2029; --surface3:#262834;
+  --border:#2e3044; --border2:#3a3d55;
+  --gold:#c9a84c; --gold2:#e8c96a; --gold-dim:rgba(201,168,76,0.12);
+  --text:#e8e9f0; --text2:#9a9db5; --text3:#5a5d75;
+  --red:#e05a5a; --red-dim:rgba(224,90,90,0.12);
+  --orange:#e0935a; --orange-dim:rgba(224,147,90,0.12);
+  --green:#5aae8a; --green-dim:rgba(90,174,138,0.12);
+  --blue:#5a8ae0; --blue-dim:rgba(90,138,224,0.12);
+  --purple:#a05ae0; --purple-dim:rgba(160,90,224,0.12);
+  --teal:#5ac8d8; --teal-dim:rgba(90,200,216,0.12);
+  --radius:10px; --radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
 
-  /* ── LOGIN SCREEN ── */
-  #login-screen {
-    position: fixed; inset: 0;
-    background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999;
-    flex-direction: column;
-    gap: 32px;
-  }
-  .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 16px;
-    padding: 40px 44px;
-    text-align: center;
-    max-width: 400px;
-    width: 90vw;
-  }
-  .login-logo { font-family: 'Playfair Display', serif; font-size: 32px; color: var(--gold2); margin-bottom: 6px; }
-  .login-sub { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 28px; }
-  .login-desc { font-size: 13px; color: var(--text2); margin-bottom: 28px; line-height: 1.6; }
-  #google-btn-container { display: flex; justify-content: center; }
-  .login-note { font-size: 11px; color: var(--text3); margin-top: 20px; line-height: 1.6; }
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:32px;}
+.login-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:40px 44px;text-align:center;max-width:400px;width:90vw;}
+.login-logo{font-family:'Playfair Display',serif;font-size:32px;color:var(--gold2);margin-bottom:6px;}
+.login-sub{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:28px;}
+.login-desc{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.6;}
+#google-btn-container{display:flex;justify-content:center;}
+.login-note{font-size:11px;color:var(--text3);margin-top:20px;line-height:1.6;}
 
-  /* ── LOADING ── */
-  #loading-screen {
-    position: fixed; inset: 0;
-    background: var(--bg);
-    display: none; align-items: center; justify-content: center;
-    z-index: 998;
-    flex-direction: column; gap: 16px;
-  }
-  .spinner {
-    width: 36px; height: 36px;
-    border: 3px solid var(--border);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { font-size: 13px; color: var(--text3); }
+/* LOADING */
+#loading-screen{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:998;flex-direction:column;gap:16px;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:13px;color:var(--text3);}
 
-  /* ── TOAST ── */
-  #toast {
-    position: fixed; bottom: 24px; right: 24px;
-    background: var(--surface3); border: 1px solid var(--border2);
-    border-radius: 8px; padding: 12px 18px;
-    font-size: 13px; color: var(--text);
-    z-index: 2000; opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
-  #toast.show { opacity: 1; }
-  #toast.error { border-color: var(--red); color: var(--red); }
-  #toast.success { border-color: var(--green); color: var(--green); }
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--text);z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none;}
+#toast.show{opacity:1;}
+#toast.error{border-color:var(--red);color:var(--red);}
+#toast.success{border-color:var(--green);color:var(--green);}
 
-  /* ── SIDEBAR ── */
-  #sidebar {
-    width: 220px; min-width: 220px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex; flex-direction: column;
-    position: sticky; top: 0; height: 100vh; overflow: hidden;
-  }
-  .logo { padding: 28px 22px 20px; border-bottom: 1px solid var(--border); }
-  .logo-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold2); letter-spacing: 0.03em; }
-  .logo-sub { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 3px; }
-  nav { flex: 1; padding: 16px 0; }
-  .nav-section-title { font-size: 9px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text3); padding: 12px 22px 6px; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 22px; cursor: pointer;
-    font-size: 13.5px; color: var(--text2);
-    border-left: 3px solid transparent;
-    transition: all 0.15s; user-select: none;
-  }
-  .nav-item:hover { color: var(--text); background: var(--surface2); }
-  .nav-item.active { color: var(--gold2); border-left-color: var(--gold); background: var(--gold-dim); }
-  .badge-count { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 600; border-radius: 10px; padding: 1px 6px; }
-  .sidebar-footer { padding: 16px 22px; border-top: 1px solid var(--border); }
-  .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--gold-dim); border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gold2); overflow: hidden; }
-  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .user-name { font-size: 12px; color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .btn-signout { font-size: 11px; color: var(--text3); cursor: pointer; background: none; border: none; font-family: inherit; transition: color 0.15s; }
-  .btn-signout:hover { color: var(--red); }
-  .sync-status { font-size: 10px; color: var(--text3); display: flex; align-items: center; gap: 5px; margin-top: 6px; }
-  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-  .sync-dot.syncing { background: var(--orange); animation: pulse 1s infinite; }
-  .sync-dot.error { background: var(--red); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+/* SIDEBAR */
+#sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;}
+.logo{padding:28px 22px 20px;border-bottom:1px solid var(--border);}
+.logo-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);letter-spacing:.03em;}
+.logo-sub{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-top:3px;}
+nav{flex:1;padding:16px 0;overflow-y:auto;}
+.nav-section-title{font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:var(--text3);padding:12px 22px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 22px;cursor:pointer;font-size:13.5px;color:var(--text2);border-left:3px solid transparent;transition:all .15s;user-select:none;}
+.nav-item:hover{color:var(--text);background:var(--surface2);}
+.nav-item.active{color:var(--gold2);border-left-color:var(--gold);background:var(--gold-dim);}
+.badge-count{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:600;border-radius:10px;padding:1px 6px;}
+.sidebar-footer{padding:16px 22px;border-top:1px solid var(--border);}
+.user-info{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--gold2);overflow:hidden;}
+.user-avatar img{width:100%;height:100%;object-fit:cover;}
+.user-name{font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-signout{font-size:11px;color:var(--text3);cursor:pointer;background:none;border:none;font-family:inherit;transition:color .15s;}
+.btn-signout:hover{color:var(--red);}
+.sync-status{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:5px;margin-top:6px;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.sync-dot.syncing{background:var(--orange);animation:pulse 1s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-  /* ── MAIN ── */
-  #main { flex: 1; overflow-y: auto; padding: 32px 36px; min-width: 0; }
-  .page { display: none; }
-  .page.active { display: block; }
-  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
-  .page-title { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--text); line-height: 1.1; }
-  .page-subtitle { font-size: 13px; color: var(--text3); margin-top: 4px; }
+/* MAIN */
+#main{flex:1;overflow-y:auto;padding:32px 36px;min-width:0;}
+.page{display:none;}
+.page.active{display:block;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+.page-title{font-family:'Playfair Display',serif;font-size:26px;color:var(--text);line-height:1.1;}
+.page-subtitle{font-size:13px;color:var(--text3);margin-top:4px;}
 
-  /* ── BUTTONS ── */
-  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: var(--radius-sm); font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
-  .btn-primary { background: var(--gold); color: #0e0f13; }
-  .btn-primary:hover { background: var(--gold2); }
-  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
-  .btn-ghost:hover { border-color: var(--gold); color: var(--gold2); }
-  .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid transparent; }
-  .btn-danger:hover { background: var(--red); color: white; }
-  .btn-sm { padding: 5px 11px; font-size: 12px; }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius-sm);font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--gold);color:#0e0f13;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold2);}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid transparent;}
+.btn-danger:hover{background:var(--red);color:white;}
+.btn-success{background:var(--green-dim);color:var(--green);border:1px solid transparent;}
+.btn-success:hover{background:var(--green);color:white;}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;}
 
-  /* ── STATS ── */
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
-  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-  .stat-card.gold::before { background: var(--gold); }
-  .stat-card.red::before { background: var(--red); }
-  .stat-card.green::before { background: var(--green); }
-  .stat-card.blue::before { background: var(--blue); }
-  .stat-card.orange::before { background: var(--orange); }
-  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
-  .stat-value { font-size: 32px; font-weight: 600; margin: 6px 0 2px; line-height: 1; }
-  .stat-card.gold .stat-value { color: var(--gold2); }
-  .stat-card.red .stat-value { color: var(--red); }
-  .stat-card.green .stat-value { color: var(--green); }
-  .stat-card.blue .stat-value { color: var(--blue); }
-  .stat-card.orange .stat-value { color: var(--orange); }
-  .stat-sub { font-size: 11px; color: var(--text3); }
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.gold::before{background:var(--gold);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.orange::before{background:var(--orange);}
+.stat-card.purple::before{background:var(--purple);}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;}
+.stat-value{font-size:30px;font-weight:600;margin:6px 0 2px;line-height:1;}
+.stat-card.gold .stat-value{color:var(--gold2);}
+.stat-card.red .stat-value{color:var(--red);}
+.stat-card.green .stat-value{color:var(--green);}
+.stat-card.blue .stat-value{color:var(--blue);}
+.stat-card.orange .stat-value{color:var(--orange);}
+.stat-card.purple .stat-value{color:var(--purple);}
+.stat-sub{font-size:11px;color:var(--text3);}
 
-  /* ── SECTION ── */
-  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
+/* SECTION */
+.section{margin-bottom:28px;}
+.section-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;}
 
-  /* ── CAUSA ITEM ── */
-  .causa-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; }
-  .causa-item:hover { border-color: var(--gold); background: var(--surface2); }
-  .causa-fuero-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-  .causa-numero { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--gold); margin-bottom: 3px; }
-  .causa-caratula { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
-  .causa-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text3); }
-  .causa-meta span { display: flex; align-items: center; gap: 4px; }
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab{padding:10px 20px;font-size:13px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;user-select:none;}
+.tab:hover{color:var(--text2);}
+.tab.active{color:var(--gold2);border-bottom-color:var(--gold);}
 
-  /* ── BADGES ── */
-  .urgency-badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
-  .urgency-alta { background: var(--red-dim); color: var(--red); }
-  .urgency-media { background: var(--orange-dim); color: var(--orange); }
-  .urgency-baja { background: var(--green-dim); color: var(--green); }
-  .fuero-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
-  .f-civil { background: var(--blue-dim); color: var(--blue); }
-  .f-laboral { background: var(--teal-dim); color: var(--teal); }
-  .f-familia { background: var(--purple-dim); color: var(--purple); }
-  .f-penal { background: var(--red-dim); color: var(--red); }
-  .jurisdiccion-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--surface3); color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
-  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--surface3); color: var(--text3); }
+/* CAUSA ITEM */
+.causa-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:all .15s;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;}
+.causa-item:hover{border-color:var(--gold);background:var(--surface2);}
+.causa-fuero-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.causa-numero{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gold);margin-bottom:3px;}
+.causa-caratula{font-size:14px;font-weight:500;color:var(--text);margin-bottom:5px;}
+.causa-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text3);}
 
-  /* ── FILTERS ── */
-  .filters-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
-  .search-input { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 8px 14px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; flex: 1; min-width: 220px; transition: border-color 0.15s; }
-  .search-input:focus { outline: none; border-color: var(--gold); }
-  .search-input::placeholder { color: var(--text3); }
-  select.filter-select { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); padding: 8px 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; cursor: pointer; }
-  select.filter-select:focus { outline: none; border-color: var(--gold); }
+/* BADGES */
+.urgency-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.urgency-alta{background:var(--red-dim);color:var(--red);}
+.urgency-media{background:var(--orange-dim);color:var(--orange);}
+.urgency-baja{background:var(--green-dim);color:var(--green);}
+.fuero-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;}
+.f-civil{background:var(--blue-dim);color:var(--blue);}
+.f-laboral{background:var(--teal-dim);color:var(--teal);}
+.f-familia{background:var(--purple-dim);color:var(--purple);}
+.f-penal{background:var(--red-dim);color:var(--red);}
+.jurisdiccion-badge{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--surface3);color:var(--text3);font-family:'IBM Plex Mono',monospace;}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;background:var(--surface3);color:var(--text3);}
+.estado-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;}
+.estado-activa{background:var(--green-dim);color:var(--green);}
+.estado-en_tramite{background:var(--blue-dim);color:var(--blue);}
+.estado-suspendida{background:var(--orange-dim);color:var(--orange);}
+.estado-archivada{background:var(--surface3);color:var(--text3);}
 
-  /* ── AGENDA ── */
-  .agenda-day-header { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text3); padding: 10px 0 6px; border-bottom: 1px solid var(--border); margin-bottom: 10px; margin-top: 20px; }
-  .agenda-day-header:first-child { margin-top: 0; }
-  .agenda-item { display: flex; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 10px; align-items: flex-start; transition: border-color 0.15s; }
-  .agenda-item:hover { border-color: var(--border2); }
-  .agenda-time { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--gold); min-width: 48px; padding-top: 1px; }
-  .agenda-content { flex: 1; }
-  .agenda-tipo { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
-  .agenda-desc { font-size: 13.5px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-  .agenda-causa-ref { font-size: 11px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
+/* FILTERS */
+.filters-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center;}
+.search-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:8px 14px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;flex:1;min-width:200px;transition:border-color .15s;}
+.search-input:focus{outline:none;border-color:var(--gold);}
+.search-input::placeholder{color:var(--text3);}
+select.filter-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);padding:8px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;cursor:pointer;}
+select.filter-select:focus{outline:none;border-color:var(--gold);}
 
-  /* ── ALERTAS ── */
-  .alerta-item { display: flex; gap: 14px; border-radius: var(--radius); padding: 14px 18px; margin-bottom: 10px; border: 1px solid; align-items: flex-start; }
-  .alerta-item.critica { border-color: var(--red); background: var(--red-dim); }
-  .alerta-item.urgente { border-color: var(--orange); background: var(--orange-dim); }
-  .alerta-item.proxima { border-color: var(--gold); background: var(--gold-dim); }
-  .alerta-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-  .alerta-content { flex: 1; }
-  .alerta-titulo { font-size: 13.5px; font-weight: 500; margin-bottom: 3px; }
-  .alerta-item.critica .alerta-titulo { color: var(--red); }
-  .alerta-item.urgente .alerta-titulo { color: var(--orange); }
-  .alerta-item.proxima .alerta-titulo { color: var(--gold2); }
-  .alerta-desc { font-size: 12px; color: var(--text2); }
-  .alerta-dias { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; margin-top: 2px; }
-  .alerta-item.critica .alerta-dias { background: var(--red); color: white; }
-  .alerta-item.urgente .alerta-dias { background: var(--orange); color: white; }
-  .alerta-item.proxima .alerta-dias { background: var(--gold); color: #0e0f13; }
+/* AGENDA */
+.agenda-day-header{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:10px;margin-top:20px;}
+.agenda-day-header:first-child{margin-top:0;}
+.agenda-item{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;align-items:flex-start;transition:border-color .15s;}
+.agenda-item:hover{border-color:var(--border2);}
+.agenda-time{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--gold);min-width:48px;padding-top:1px;}
+.agenda-content{flex:1;}
+.agenda-tipo{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.agenda-desc{font-size:13.5px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.agenda-causa-ref{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;}
 
-  /* ── MODAL ── */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 28px; width: 620px; max-width: 95vw; max-height: 90vh; overflow-y: auto; transform: translateY(12px); transition: transform 0.2s; }
-  .modal-overlay.open .modal { transform: translateY(0); }
-  .modal-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold2); margin-bottom: 22px; }
-  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .modal-grid.full { grid-template-columns: 1fr; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group.span2 { grid-column: span 2; }
-  .form-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
-  .form-input, .form-select, .form-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 9px 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; transition: border-color 0.15s; }
-  .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--gold); }
-  .form-textarea { resize: vertical; min-height: 80px; }
-  .form-input::placeholder, .form-textarea::placeholder { color: var(--text3); }
-  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+/* ALERTAS */
+.alerta-item{display:flex;gap:14px;border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;border:1px solid;align-items:flex-start;}
+.alerta-item.critica{border-color:var(--red);background:var(--red-dim);}
+.alerta-item.urgente{border-color:var(--orange);background:var(--orange-dim);}
+.alerta-item.proxima{border-color:var(--gold);background:var(--gold-dim);}
+.alerta-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.alerta-content{flex:1;}
+.alerta-titulo{font-size:13.5px;font-weight:500;margin-bottom:3px;}
+.alerta-item.critica .alerta-titulo{color:var(--red);}
+.alerta-item.urgente .alerta-titulo{color:var(--orange);}
+.alerta-item.proxima .alerta-titulo{color:var(--gold2);}
+.alerta-desc{font-size:12px;color:var(--text2);}
+.alerta-dias{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;margin-top:2px;}
+.alerta-item.critica .alerta-dias{background:var(--red);color:white;}
+.alerta-item.urgente .alerta-dias{background:var(--orange);color:white;}
+.alerta-item.proxima .alerta-dias{background:var(--gold);color:#0e0f13;}
 
-  /* ── DETAIL ── */
-  .causa-detail-header { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 20px; }
-  .detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-  .detail-field-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-  .detail-field-value { font-size: 13.5px; color: var(--text); }
-  .detail-field-value.mono { font-family: 'IBM Plex Mono', monospace; color: var(--gold); }
-  .movimiento-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
-  .movimiento-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); min-width: 90px; padding-top: 2px; }
-  .movimiento-text { font-size: 13.5px; color: var(--text); flex: 1; }
-  .movimiento-autor { font-size: 11px; color: var(--text3); margin-top: 3px; }
-  .back-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); cursor: pointer; margin-bottom: 18px; transition: color 0.15s; user-select: none; }
-  .back-btn:hover { color: var(--gold2); }
+/* TAREAS */
+.tarea-item{display:flex;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;align-items:flex-start;transition:all .15s;}
+.tarea-item.completada{opacity:.45;}
+.tarea-check{width:18px;height:18px;border-radius:4px;border:2px solid var(--border2);cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.tarea-check.done{background:var(--green);border-color:var(--green);color:white;font-size:11px;}
+.tarea-check:hover:not(.done){border-color:var(--green);}
+.tarea-content{flex:1;}
+.tarea-titulo{font-size:13.5px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.tarea-item.completada .tarea-titulo{text-decoration:line-through;color:var(--text3);}
+.tarea-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text3);}
+.tarea-prioridad{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;}
+.tp-alta{background:var(--red-dim);color:var(--red);}
+.tp-media{background:var(--orange-dim);color:var(--orange);}
+.tp-baja{background:var(--green-dim);color:var(--green);}
 
-  /* ── MISC ── */
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
-  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
-  .empty-title { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
-  .empty-sub { font-size: 13px; }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .fuero-stats { display: flex; flex-direction: column; gap: 10px; }
-  .fuero-stat-row { display: flex; align-items: center; gap: 10px; }
-  .fuero-stat-label { font-size: 12px; color: var(--text2); min-width: 80px; }
-  .fuero-bar { flex: 1; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
-  .fuero-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
-  .fuero-stat-count { font-size: 12px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; min-width: 24px; text-align: right; }
+/* HONORARIOS */
+.honorario-item{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;align-items:center;}
+.honorario-monto{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;white-space:nowrap;}
+.honorario-monto.ingreso{color:var(--green);}
+.honorario-monto.egreso{color:var(--red);}
+.honorario-content{flex:1;}
+.honorario-concepto{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;}
+.honorario-meta{font-size:11px;color:var(--text3);}
+.balance-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap;}
+.balance-item{display:flex;flex-direction:column;gap:3px;}
+.balance-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;}
+.balance-value{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;}
+
+/* CAUTELARES */
+.cautelar-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;}
+.cautelar-item.vencida{border-color:var(--red);background:var(--red-dim);}
+.cautelar-item.proxima{border-color:var(--orange);background:var(--orange-dim);}
+.cautelar-item.vigente{border-color:var(--green);}
+.cautelar-content{flex:1;}
+.cautelar-tipo{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.cautelar-desc{font-size:13.5px;font-weight:500;color:var(--text);margin-bottom:5px;}
+.cautelar-meta{font-size:11px;color:var(--text3);}
+.cautelar-dias{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 9px;border-radius:10px;font-weight:600;white-space:nowrap;}
+.cautelar-item.vencida .cautelar-dias{background:var(--red);color:white;}
+.cautelar-item.proxima .cautelar-dias{background:var(--orange);color:white;}
+.cautelar-item.vigente .cautelar-dias{background:var(--green-dim);color:var(--green);}
+
+/* PLANTILLAS */
+.plantilla-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.plantilla-item:hover{border-color:var(--gold);background:var(--surface2);}
+.plantilla-nombre{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.plantilla-fuero{font-size:11px;color:var(--text3);}
+.plantilla-preview{font-size:12px;color:var(--text3);margin-top:8px;line-height:1.5;white-space:pre-wrap;background:var(--surface2);border-radius:6px;padding:10px;font-family:'IBM Plex Mono',monospace;max-height:80px;overflow:hidden;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:28px;width:660px;max-width:95vw;max-height:90vh;overflow-y:auto;transform:translateY(12px);transition:transform .2s;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);margin-bottom:22px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.modal-grid.full{grid-template-columns:1fr;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.span2{grid-column:span 2;}
+.form-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;}
+.form-input,.form-select,.form-textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;transition:border-color .15s;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--gold);}
+.form-textarea{resize:vertical;min-height:80px;}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--text3);}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;}
+
+/* DETAIL */
+.causa-detail-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;margin-bottom:20px;}
+.detail-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.detail-field-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+.detail-field-value{font-size:13.5px;color:var(--text);}
+.detail-field-value.mono{font-family:'IBM Plex Mono',monospace;color:var(--gold);}
+.movimiento-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+.movimiento-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);min-width:90px;padding-top:2px;}
+.movimiento-text{font-size:13.5px;color:var(--text);flex:1;}
+.movimiento-autor{font-size:11px;color:var(--text3);margin-top:3px;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);cursor:pointer;margin-bottom:18px;transition:color .15s;user-select:none;}
+.back-btn:hover{color:var(--gold2);}
+
+/* MISC */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3);}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.5;}
+.empty-title{font-size:15px;color:var(--text2);margin-bottom:6px;}
+.empty-sub{font-size:13px;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+@media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+.fuero-stats{display:flex;flex-direction:column;gap:10px;}
+.fuero-stat-row{display:flex;align-items:center;gap:10px;}
+.fuero-stat-label{font-size:12px;color:var(--text2);min-width:90px;}
+.fuero-bar{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.fuero-bar-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+.fuero-stat-count{font-size:12px;color:var(--text3);font-family:'IBM Plex Mono',monospace;min-width:24px;text-align:right;}
+canvas{max-width:100%;}
+.chart-container{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.chart-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
 </style>
 </head>
 <body>
@@ -285,19 +295,16 @@
   <div class="login-box">
     <div class="login-logo">LexTrack</div>
     <div class="login-sub">Gestión de Causas · Estudio Jurídico</div>
-    <div class="login-desc">
-      Iniciá sesión con Google para acceder a los expedientes compartidos del estudio.
-      Los datos se sincronizan en tiempo real entre todos los usuarios.
-    </div>
+    <div class="login-desc">Iniciá sesión con Google para acceder a los expedientes compartidos del estudio.</div>
     <div id="google-btn-container"></div>
-    <div class="login-note">🔒 Los datos se almacenan en Google Sheets de su propiedad.<br>LexTrack no almacena ninguna información en servidores externos.</div>
+    <div class="login-note">🔒 Los datos se almacenan exclusivamente en el Google Sheets del estudio.</div>
   </div>
 </div>
 
 <!-- LOADING -->
-<div id="loading-screen" style="display:none">
+<div id="loading-screen">
   <div class="spinner"></div>
-  <div class="loading-text" id="loading-text">Cargando datos del estudio...</div>
+  <div class="loading-text" id="loading-text">Cargando...</div>
 </div>
 
 <!-- TOAST -->
@@ -320,6 +327,11 @@
       Causas
       <span class="badge-count" id="badge-urgentes" style="display:none"></span>
     </div>
+    <div class="nav-item" onclick="navigate('tareas')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tareas
+      <span class="badge-count" id="badge-tareas" style="display:none"></span>
+    </div>
     <div class="nav-item" onclick="navigate('agenda')">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Agenda
@@ -328,6 +340,24 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       Alertas
       <span class="badge-count" id="badge-alertas" style="display:none"></span>
+    </div>
+    <div class="nav-section-title">Gestión</div>
+    <div class="nav-item" onclick="navigate('cautelares')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Cautelares
+      <span class="badge-count" id="badge-cautelares" style="display:none"></span>
+    </div>
+    <div class="nav-item" onclick="navigate('honorarios')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Honorarios
+    </div>
+    <div class="nav-item" onclick="navigate('plantillas')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v4H4zM4 12h8v8H4zM16 12h4v8h-4z"/></svg>
+      Plantillas
+    </div>
+    <div class="nav-item" onclick="navigate('estadisticas')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Estadísticas
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -349,10 +379,7 @@
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
     <div class="page-header">
-      <div>
-        <div class="page-title">Buenos días</div>
-        <div class="page-subtitle" id="dash-fecha"></div>
-      </div>
+      <div><div class="page-title" id="dash-saludo">Bienvenido</div><div class="page-subtitle" id="dash-fecha"></div></div>
       <button class="btn btn-ghost btn-sm" onclick="syncAll()">↻ Sincronizar</button>
     </div>
     <div class="stats-grid" id="dash-stats"></div>
@@ -360,27 +387,25 @@
       <div>
         <div class="section-title">Alertas prioritarias</div>
         <div id="dash-alertas"></div>
+        <div class="section-title" style="margin-top:24px">Tareas pendientes urgentes</div>
+        <div id="dash-tareas"></div>
       </div>
       <div>
         <div class="section-title">Distribución por fuero</div>
         <div class="card"><div class="fuero-stats" id="dash-fuero-stats"></div></div>
         <div class="section-title" style="margin-top:24px">Próximas audiencias</div>
         <div id="dash-proximas-audiencias"></div>
+        <div class="section-title" style="margin-top:24px">Cautelares por vencer</div>
+        <div id="dash-cautelares"></div>
       </div>
     </div>
   </div>
 
-  <!-- CAUSAS LIST -->
+  <!-- CAUSAS -->
   <div id="page-causas" class="page">
     <div class="page-header">
-      <div>
-        <div class="page-title">Causas</div>
-        <div class="page-subtitle" id="causas-count-label"></div>
-      </div>
-      <button class="btn btn-primary" onclick="openModalCausa()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nueva Causa
-      </button>
+      <div><div class="page-title">Causas</div><div class="page-subtitle" id="causas-count-label"></div></div>
+      <button class="btn btn-primary" onclick="openModalCausa()">+ Nueva Causa</button>
     </div>
     <div class="filters-bar">
       <input type="text" class="search-input" id="search-causas" placeholder="Buscar por carátula, número o parte..." oninput="renderCausas()">
@@ -422,17 +447,36 @@
     <div id="causa-detail-content"></div>
   </div>
 
+  <!-- TAREAS -->
+  <div id="page-tareas" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Tareas</div><div class="page-subtitle">Pendientes y seguimiento por abogado</div></div>
+      <button class="btn btn-primary" onclick="openModalTarea()">+ Nueva Tarea</button>
+    </div>
+    <div class="filters-bar">
+      <select class="filter-select" id="filter-tarea-estado" onchange="renderTareas()">
+        <option value="pendiente">Pendientes</option>
+        <option value="todas">Todas</option>
+        <option value="completada">Completadas</option>
+      </select>
+      <select class="filter-select" id="filter-tarea-responsable" onchange="renderTareas()">
+        <option value="">Todos los responsables</option>
+      </select>
+      <select class="filter-select" id="filter-tarea-prioridad" onchange="renderTareas()">
+        <option value="">Toda prioridad</option>
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="baja">Baja</option>
+      </select>
+    </div>
+    <div id="tareas-list"></div>
+  </div>
+
   <!-- AGENDA -->
   <div id="page-agenda" class="page">
     <div class="page-header">
-      <div>
-        <div class="page-title">Agenda</div>
-        <div class="page-subtitle">Audiencias y actos procesales programados</div>
-      </div>
-      <button class="btn btn-primary" onclick="openModalAudiencia()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nueva Audiencia
-      </button>
+      <div><div class="page-title">Agenda</div><div class="page-subtitle">Audiencias y actos procesales</div></div>
+      <button class="btn btn-primary" onclick="openModalAudiencia()">+ Nueva Audiencia</button>
     </div>
     <div id="agenda-list"></div>
   </div>
@@ -440,91 +484,88 @@
   <!-- ALERTAS -->
   <div id="page-alertas" class="page">
     <div class="page-header">
-      <div>
-        <div class="page-title">Alertas y Vencimientos</div>
-        <div class="page-subtitle">Plazos procesales próximos a vencer</div>
-      </div>
-      <button class="btn btn-primary" onclick="openModalAlerta()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nueva Alerta
-      </button>
+      <div><div class="page-title">Alertas y Vencimientos</div><div class="page-subtitle">Plazos procesales próximos a vencer</div></div>
+      <button class="btn btn-primary" onclick="openModalAlerta()">+ Nueva Alerta</button>
     </div>
     <div id="alertas-list"></div>
   </div>
 
+  <!-- CAUTELARES -->
+  <div id="page-cautelares" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Medidas Cautelares</div><div class="page-subtitle">Embargos, inhibiciones y otras medidas con plazo de caducidad</div></div>
+      <button class="btn btn-primary" onclick="openModalCautelar()">+ Nueva Cautelar</button>
+    </div>
+    <div id="cautelares-list"></div>
+  </div>
+
+  <!-- HONORARIOS -->
+  <div id="page-honorarios" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Honorarios y Gastos</div><div class="page-subtitle">Registro de ingresos y egresos por causa</div></div>
+      <button class="btn btn-primary" onclick="openModalHonorario()">+ Nuevo Registro</button>
+    </div>
+    <div class="filters-bar">
+      <select class="filter-select" id="filter-hon-causa" onchange="renderHonorarios()">
+        <option value="">Todas las causas</option>
+      </select>
+      <select class="filter-select" id="filter-hon-tipo" onchange="renderHonorarios()">
+        <option value="">Ingresos y egresos</option>
+        <option value="ingreso">Solo ingresos</option>
+        <option value="egreso">Solo egresos</option>
+      </select>
+    </div>
+    <div id="honorarios-balance"></div>
+    <div id="honorarios-list"></div>
+  </div>
+
+  <!-- PLANTILLAS -->
+  <div id="page-plantillas" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Plantillas de Escritos</div><div class="page-subtitle">Modelos reutilizables con campos de cada causa</div></div>
+      <button class="btn btn-primary" onclick="openModalPlantilla()">+ Nueva Plantilla</button>
+    </div>
+    <div id="plantillas-list"></div>
+  </div>
+
+  <!-- USAR PLANTILLA -->
+  <div id="page-usar-plantilla" class="page">
+    <div class="back-btn" onclick="navigate('plantillas')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver a plantillas
+    </div>
+    <div id="usar-plantilla-content"></div>
+  </div>
+
+  <!-- ESTADÍSTICAS -->
+  <div id="page-estadisticas" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Estadísticas del Estudio</div><div class="page-subtitle">Métricas y análisis de causas, tareas y honorarios</div></div>
+    </div>
+    <div id="estadisticas-content"></div>
+  </div>
+
 </div>
 
-<!-- MODALES -->
-<!-- Nueva Causa -->
+<!-- ══════════════════ MODALES ══════════════════ -->
+
+<!-- CAUSA -->
 <div class="modal-overlay" id="modal-causa" onclick="closeModalIfOverlay(event,'modal-causa')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title" id="modal-causa-title">Nueva Causa</div>
     <div class="modal-grid">
-      <div class="form-group span2">
-        <label class="form-label">Carátula *</label>
-        <input type="text" class="form-input" id="mc-caratula" placeholder="Ej: García Juan c/ Empresa SA s/ Laboral">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Número de expediente</label>
-        <input type="text" class="form-input" id="mc-numero" placeholder="Ej: 12345/2024">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Jurisdicción *</label>
-        <select class="form-select" id="mc-jurisdiccion">
-          <option value="PBA">PBA — Provincia de Buenos Aires</option>
-          <option value="PJN">PJN — Poder Judicial de la Nación</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Fuero *</label>
-        <select class="form-select" id="mc-fuero">
-          <option value="civil">Civil y Comercial</option>
-          <option value="laboral">Laboral</option>
-          <option value="familia">Familia</option>
-          <option value="penal">Penal</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Juzgado / Tribunal</label>
-        <input type="text" class="form-input" id="mc-juzgado" placeholder="Ej: Juzgado Civil N°5 La Plata">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Parte actora</label>
-        <input type="text" class="form-input" id="mc-actora" placeholder="Nombre del actor">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Parte demandada</label>
-        <input type="text" class="form-input" id="mc-demandada" placeholder="Nombre del demandado">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Urgencia</label>
-        <select class="form-select" id="mc-urgencia">
-          <option value="media">Media</option>
-          <option value="alta">Alta</option>
-          <option value="baja">Baja</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Estado</label>
-        <select class="form-select" id="mc-estado">
-          <option value="activa">Activa</option>
-          <option value="en_tramite">En trámite</option>
-          <option value="suspendida">Suspendida</option>
-          <option value="archivada">Archivada</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Responsable / Abogado</label>
-        <input type="text" class="form-input" id="mc-responsable" placeholder="Nombre del abogado a cargo">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Etapa procesal</label>
-        <input type="text" class="form-input" id="mc-etapa" placeholder="Ej: Apertura a prueba">
-      </div>
-      <div class="form-group span2">
-        <label class="form-label">Notas / Observaciones</label>
-        <textarea class="form-textarea" id="mc-notas" placeholder="Observaciones, estrategia, notas internas..."></textarea>
-      </div>
+      <div class="form-group span2"><label class="form-label">Carátula *</label><input type="text" class="form-input" id="mc-caratula" placeholder="Ej: García Juan c/ Empresa SA s/ Laboral"></div>
+      <div class="form-group"><label class="form-label">Número de expediente</label><input type="text" class="form-input" id="mc-numero" placeholder="12345/2024"></div>
+      <div class="form-group"><label class="form-label">Jurisdicción *</label><select class="form-select" id="mc-jurisdiccion"><option value="PBA">PBA — Provincia de Buenos Aires</option><option value="PJN">PJN — Poder Judicial de la Nación</option></select></div>
+      <div class="form-group"><label class="form-label">Fuero *</label><select class="form-select" id="mc-fuero"><option value="civil">Civil y Comercial</option><option value="laboral">Laboral</option><option value="familia">Familia</option><option value="penal">Penal</option></select></div>
+      <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input type="text" class="form-input" id="mc-juzgado" placeholder="Juzgado Civil N°5 La Plata"></div>
+      <div class="form-group"><label class="form-label">Parte actora</label><input type="text" class="form-input" id="mc-actora" placeholder="Nombre del actor"></div>
+      <div class="form-group"><label class="form-label">Parte demandada</label><input type="text" class="form-input" id="mc-demandada" placeholder="Nombre del demandado"></div>
+      <div class="form-group"><label class="form-label">Urgencia</label><select class="form-select" id="mc-urgencia"><option value="media">Media</option><option value="alta">Alta</option><option value="baja">Baja</option></select></div>
+      <div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="mc-estado"><option value="activa">Activa</option><option value="en_tramite">En trámite</option><option value="suspendida">Suspendida</option><option value="archivada">Archivada</option></select></div>
+      <div class="form-group"><label class="form-label">Responsable / Abogado</label><input type="text" class="form-input" id="mc-responsable" placeholder="Nombre del abogado a cargo"></div>
+      <div class="form-group"><label class="form-label">Etapa procesal</label><input type="text" class="form-input" id="mc-etapa" placeholder="Ej: Apertura a prueba"></div>
+      <div class="form-group span2"><label class="form-label">Notas / Observaciones</label><textarea class="form-textarea" id="mc-notas" placeholder="Observaciones, estrategia, notas internas..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-causa')">Cancelar</button>
@@ -533,46 +574,23 @@
   </div>
 </div>
 
-<!-- Nueva Audiencia -->
+<!-- AUDIENCIA -->
 <div class="modal-overlay" id="modal-audiencia" onclick="closeModalIfOverlay(event,'modal-audiencia')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title">Nueva Audiencia / Acto Procesal</div>
     <div class="modal-grid">
-      <div class="form-group">
-        <label class="form-label">Fecha *</label>
-        <input type="date" class="form-input" id="ma-fecha">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Hora</label>
-        <input type="time" class="form-input" id="ma-hora">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Tipo de acto *</label>
+      <div class="form-group"><label class="form-label">Fecha *</label><input type="date" class="form-input" id="ma-fecha"></div>
+      <div class="form-group"><label class="form-label">Hora</label><input type="time" class="form-input" id="ma-hora"></div>
+      <div class="form-group"><label class="form-label">Tipo de acto *</label>
         <select class="form-select" id="ma-tipo">
-          <option>Audiencia</option>
-          <option>Audiencia preliminar</option>
-          <option>Audiencia de vista de causa</option>
-          <option>Audiencia de conciliación</option>
-          <option>SECLO</option>
-          <option>Mediación</option>
-          <option>Pericia</option>
-          <option>Vencimiento plazo</option>
-          <option>Presentación escrito</option>
-          <option>Otro</option>
+          <option>Audiencia</option><option>Audiencia preliminar</option><option>Audiencia de vista de causa</option>
+          <option>Audiencia de conciliación</option><option>SECLO</option><option>Mediación</option>
+          <option>Pericia</option><option>Vencimiento plazo</option><option>Presentación escrito</option><option>Otro</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label">Causa vinculada</label>
-        <select class="form-select" id="ma-causa"></select>
-      </div>
-      <div class="form-group span2">
-        <label class="form-label">Descripción</label>
-        <input type="text" class="form-input" id="ma-descripcion" placeholder="Descripción breve del acto">
-      </div>
-      <div class="form-group span2">
-        <label class="form-label">Notas</label>
-        <textarea class="form-textarea" id="ma-notas" placeholder="Observaciones, qué llevar, puntos a tratar..."></textarea>
-      </div>
+      <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="ma-causa"></select></div>
+      <div class="form-group span2"><label class="form-label">Descripción</label><input type="text" class="form-input" id="ma-descripcion" placeholder="Descripción breve"></div>
+      <div class="form-group span2"><label class="form-label">Notas</label><textarea class="form-textarea" id="ma-notas" placeholder="Qué llevar, puntos a tratar..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-audiencia')">Cancelar</button>
@@ -581,27 +599,15 @@
   </div>
 </div>
 
-<!-- Nueva Alerta -->
+<!-- ALERTA -->
 <div class="modal-overlay" id="modal-alerta" onclick="closeModalIfOverlay(event,'modal-alerta')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title">Nueva Alerta / Vencimiento</div>
     <div class="modal-grid">
-      <div class="form-group span2">
-        <label class="form-label">Título *</label>
-        <input type="text" class="form-input" id="mal-titulo" placeholder="Ej: Vencimiento traslado demanda">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Fecha de vencimiento *</label>
-        <input type="date" class="form-input" id="mal-fecha">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Causa vinculada</label>
-        <select class="form-select" id="mal-causa"></select>
-      </div>
-      <div class="form-group span2">
-        <label class="form-label">Descripción</label>
-        <textarea class="form-textarea" id="mal-descripcion" placeholder="Detalle del vencimiento o alerta..."></textarea>
-      </div>
+      <div class="form-group span2"><label class="form-label">Título *</label><input type="text" class="form-input" id="mal-titulo" placeholder="Ej: Vencimiento traslado demanda"></div>
+      <div class="form-group"><label class="form-label">Fecha de vencimiento *</label><input type="date" class="form-input" id="mal-fecha"></div>
+      <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="mal-causa"></select></div>
+      <div class="form-group span2"><label class="form-label">Descripción</label><textarea class="form-textarea" id="mal-descripcion" placeholder="Detalle del vencimiento..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-alerta')">Cancelar</button>
@@ -610,23 +616,14 @@
   </div>
 </div>
 
-<!-- Agregar Movimiento -->
+<!-- MOVIMIENTO -->
 <div class="modal-overlay" id="modal-movimiento" onclick="closeModalIfOverlay(event,'modal-movimiento')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title">Agregar Movimiento</div>
     <div class="modal-grid full">
-      <div class="form-group">
-        <label class="form-label">Fecha</label>
-        <input type="date" class="form-input" id="mm-fecha">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Descripción del movimiento *</label>
-        <textarea class="form-textarea" id="mm-texto" placeholder="Ej: Se presenta demanda. Se adjuntan pruebas instrumentales..."></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ingresado por</label>
-        <input type="text" class="form-input" id="mm-autor" placeholder="Nombre del abogado">
-      </div>
+      <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="mm-fecha"></div>
+      <div class="form-group"><label class="form-label">Descripción del movimiento *</label><textarea class="form-textarea" id="mm-texto" placeholder="Ej: Se presenta demanda. Se adjuntan pruebas instrumentales..."></textarea></div>
+      <div class="form-group"><label class="form-label">Ingresado por</label><input type="text" class="form-input" id="mm-autor" placeholder="Nombre del abogado"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-movimiento')">Cancelar</button>
@@ -635,339 +632,351 @@
   </div>
 </div>
 
+<!-- TAREA -->
+<div class="modal-overlay" id="modal-tarea" onclick="closeModalIfOverlay(event,'modal-tarea')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-tarea-title">Nueva Tarea</div>
+    <div class="modal-grid">
+      <div class="form-group span2"><label class="form-label">Título de la tarea *</label><input type="text" class="form-input" id="mt-titulo" placeholder="Ej: Presentar memorial en Cámara"></div>
+      <div class="form-group"><label class="form-label">Responsable *</label><input type="text" class="form-input" id="mt-responsable" placeholder="Nombre del abogado"></div>
+      <div class="form-group"><label class="form-label">Fecha límite</label><input type="date" class="form-input" id="mt-fecha"></div>
+      <div class="form-group"><label class="form-label">Prioridad</label>
+        <select class="form-select" id="mt-prioridad"><option value="media">Media</option><option value="alta">Alta</option><option value="baja">Baja</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="mt-causa"></select></div>
+      <div class="form-group span2"><label class="form-label">Descripción / Notas</label><textarea class="form-textarea" id="mt-descripcion" placeholder="Detalle de la tarea..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-tarea')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-tarea" onclick="saveTarea()">Guardar Tarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAUTELAR -->
+<div class="modal-overlay" id="modal-cautelar" onclick="closeModalIfOverlay(event,'modal-cautelar')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-cautelar-title">Nueva Medida Cautelar</div>
+    <div class="modal-grid">
+      <div class="form-group"><label class="form-label">Tipo de medida *</label>
+        <select class="form-select" id="mcat-tipo">
+          <option>Embargo preventivo</option><option>Embargo ejecutivo</option><option>Inhibición general de bienes</option>
+          <option>Prohibición de innovar</option><option>Prohibición de contratar</option><option>Anotación de litis</option>
+          <option>Intervención judicial</option><option>Secuestro</option><option>Otra</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Causa vinculada *</label><select class="form-select" id="mcat-causa"></select></div>
+      <div class="form-group span2"><label class="form-label">Descripción</label><input type="text" class="form-input" id="mcat-descripcion" placeholder="Ej: Embargo sobre CBU 123456 por $500.000"></div>
+      <div class="form-group"><label class="form-label">Fecha de traba</label><input type="date" class="form-input" id="mcat-fecha-traba"></div>
+      <div class="form-group"><label class="form-label">Fecha de caducidad *</label><input type="date" class="form-input" id="mcat-fecha-caducidad"></div>
+      <div class="form-group span2"><label class="form-label">Notas</label><textarea class="form-textarea" id="mcat-notas" placeholder="Juzgado, oficio, entidad intervenida..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cautelar')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-cautelar" onclick="saveCautelar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- HONORARIO -->
+<div class="modal-overlay" id="modal-honorario" onclick="closeModalIfOverlay(event,'modal-honorario')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Nuevo Registro de Honorarios / Gastos</div>
+    <div class="modal-grid">
+      <div class="form-group"><label class="form-label">Tipo *</label>
+        <select class="form-select" id="mh-tipo">
+          <option value="ingreso">Ingreso (honorario cobrado)</option>
+          <option value="egreso">Egreso (gasto / tasa / sellado)</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Monto (ARS) *</label><input type="number" class="form-input" id="mh-monto" placeholder="0.00" min="0"></div>
+      <div class="form-group span2"><label class="form-label">Concepto *</label><input type="text" class="form-input" id="mh-concepto" placeholder="Ej: Honorarios primera instancia / Tasa de justicia"></div>
+      <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="mh-fecha"></div>
+      <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="mh-causa"></select></div>
+      <div class="form-group span2"><label class="form-label">Notas</label><textarea class="form-textarea" id="mh-notas" placeholder="Observaciones adicionales..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-honorario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveHonorario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLANTILLA -->
+<div class="modal-overlay" id="modal-plantilla" onclick="closeModalIfOverlay(event,'modal-plantilla')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-plantilla-title">Nueva Plantilla</div>
+    <div class="modal-grid">
+      <div class="form-group"><label class="form-label">Nombre de la plantilla *</label><input type="text" class="form-input" id="mpl-nombre" placeholder="Ej: Demanda laboral inicial"></div>
+      <div class="form-group"><label class="form-label">Fuero / Tipo</label>
+        <select class="form-select" id="mpl-fuero"><option value="">General</option><option value="civil">Civil y Comercial</option><option value="laboral">Laboral</option><option value="familia">Familia</option><option value="penal">Penal</option></select>
+      </div>
+      <div class="form-group span2">
+        <label class="form-label">Contenido del escrito *</label>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Variables disponibles: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{caratula}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{numero}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{actora}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{demandada}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{juzgado}</code> <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">{responsable}</code></div>
+        <textarea class="form-textarea" id="mpl-contenido" placeholder="Ingrese el texto del escrito. Use las variables entre llaves para que se completen automáticamente con los datos de cada causa..." style="min-height:200px;font-family:'IBM Plex Mono',monospace;font-size:12px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-plantilla')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-plantilla" onclick="savePlantilla()">Guardar Plantilla</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ── CONFIG ──
+// ══════════════════ CONFIG ══════════════════
 const CLIENT_ID = '604855232321-hah4j4jivl6r66s18hspa91jbq22li5q.apps.googleusercontent.com';
 const SHEET_ID  = '1ZZtoSbPsGIzIGeBWNl1KwoUWpyvbzb46EV9ms2JEvoc';
 const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
+const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas' };
 
-// Sheet tab names
-const TABS = { causas: 'Causas', audiencias: 'Audiencias', alertas: 'Alertas' };
-
-// ── STATE ──
+// ══════════════════ STATE ══════════════════
 let accessToken = null;
-let state = { causas: [], audiencias: [], alertas: [], currentPage: 'dashboard', currentCausaId: null, currentMovimientoCausaId: null, editingCausaId: null };
-let syncTimeout = null;
+let state = {
+  causas:[], audiencias:[], alertas:[], tareas:[], cautelares:[], honorarios:[], plantillas:[],
+  currentPage:'dashboard', currentCausaId:null, currentMovimientoCausaId:null,
+  editingCausaId:null, editingTareaId:null, editingCautelarId:null, editingPlantillaId:null,
+  currentPlantillaId:null,
+};
+let charts = {};
 
-// ── TOAST ──
-function toast(msg, type='') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = type ? `show ${type}` : 'show';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.className = '', 3000);
+// ══════════════════ TOAST / UI ══════════════════
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=type?`show ${type}`:'show';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.className='',3000);
 }
-
-// ── SYNC STATUS ──
-function setSyncStatus(s) {
-  const dot = document.getElementById('sync-dot');
-  const lbl = document.getElementById('sync-label');
-  dot.className = 'sync-dot' + (s==='syncing'?' syncing':s==='error'?' error':'');
-  lbl.textContent = s==='syncing'?'Sincronizando...':s==='error'?'Error de sync':'Sincronizado';
+function setSyncStatus(s){
+  const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-label');
+  dot.className='sync-dot'+(s==='syncing'?' syncing':s==='error'?' error':'');
+  lbl.textContent=s==='syncing'?'Sincronizando...':s==='error'?'Error de sync':'Sincronizado';
 }
+function showLoading(t='Cargando...'){document.getElementById('loading-text').textContent=t;document.getElementById('loading-screen').style.display='flex';}
+function hideLoading(){document.getElementById('loading-screen').style.display='none';}
 
-// ── LOADING ──
-function showLoading(text='Cargando...') {
-  document.getElementById('loading-text').textContent = text;
-  document.getElementById('loading-screen').style.display = 'flex';
-}
-function hideLoading() { document.getElementById('loading-screen').style.display = 'none'; }
-
-// ── GOOGLE AUTH ──
-window.addEventListener('load', () => {
-  google.accounts.id.initialize({
-    client_id: CLIENT_ID,
-    callback: handleCredential,
-    auto_select: false,
-  });
-  google.accounts.id.renderButton(
-    document.getElementById('google-btn-container'),
-    { theme: 'filled_black', size: 'large', text: 'signin_with', locale: 'es' }
-  );
+// ══════════════════ AUTH ══════════════════
+window.addEventListener('load',()=>{
+  google.accounts.id.initialize({client_id:CLIENT_ID,callback:handleCredential,auto_select:false});
+  google.accounts.id.renderButton(document.getElementById('google-btn-container'),{theme:'filled_black',size:'large',text:'signin_with',locale:'es'});
 });
 
-async function handleCredential(response) {
+async function handleCredential(response){
   showLoading('Autenticando...');
-  document.getElementById('login-screen').style.display = 'none';
-
-  // Use token client for Sheets API access
-  const tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: async (tokenResponse) => {
-      if (tokenResponse.error) {
-        toast('Error de autenticación: ' + tokenResponse.error, 'error');
-        document.getElementById('login-screen').style.display = 'flex';
-        hideLoading();
-        return;
-      }
-      accessToken = tokenResponse.access_token;
-
-      // Parse user info from JWT
-      const payload = JSON.parse(atob(response.credential.split('.')[1]));
-      document.getElementById('user-name').textContent = payload.name || payload.email;
-      const av = document.getElementById('user-avatar');
-      if (payload.picture) { av.innerHTML = `<img src="${payload.picture}">`; }
-      else { av.textContent = (payload.name||'?')[0].toUpperCase(); }
-
-      showLoading('Preparando la planilla...');
+  document.getElementById('login-screen').style.display='none';
+  const tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID, scope:SCOPES,
+    callback:async(tr)=>{
+      if(tr.error){toast('Error: '+tr.error,'error');document.getElementById('login-screen').style.display='flex';hideLoading();return;}
+      accessToken=tr.access_token;
+      const payload=JSON.parse(atob(response.credential.split('.')[1]));
+      document.getElementById('user-name').textContent=payload.name||payload.email;
+      const av=document.getElementById('user-avatar');
+      if(payload.picture)av.innerHTML=`<img src="${payload.picture}">`;
+      else av.textContent=(payload.name||'?')[0].toUpperCase();
+      showLoading('Preparando planilla...');
       await ensureSheets();
-      showLoading('Cargando datos del estudio...');
+      showLoading('Cargando datos...');
       await loadAllData();
       hideLoading();
-
-      document.getElementById('sidebar').style.display = 'flex';
-      document.getElementById('main').style.display = 'block';
-      renderDashboard();
-      updateBadges();
-    },
+      document.getElementById('sidebar').style.display='flex';
+      document.getElementById('main').style.display='block';
+      seedDefaultPlantillas();
+      renderDashboard(); updateBadges();
+    }
   });
-  tokenClient.requestAccessToken({ prompt: '' });
+  tokenClient.requestAccessToken({prompt:''});
 }
 
-function signOut() {
-  google.accounts.id.disableAutoSelect();
-  accessToken = null;
-  state = { causas: [], audiencias: [], alertas: [], currentPage: 'dashboard', currentCausaId: null, currentMovimientoCausaId: null, editingCausaId: null };
-  document.getElementById('sidebar').style.display = 'none';
-  document.getElementById('main').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
+function signOut(){
+  google.accounts.id.disableAutoSelect(); accessToken=null;
+  state={causas:[],audiencias:[],alertas:[],tareas:[],cautelares:[],honorarios:[],plantillas:[],currentPage:'dashboard',currentCausaId:null,currentMovimientoCausaId:null,editingCausaId:null,editingTareaId:null,editingCautelarId:null,editingPlantillaId:null,currentPlantillaId:null};
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('main').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
 }
 
-// ── SHEETS API HELPERS ──
-async function sheetsGet(range) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  return res.json();
+// ══════════════════ SHEETS API ══════════════════
+async function sheetsGet(range){
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,{headers:{Authorization:`Bearer ${accessToken}`}});
+  return r.json();
+}
+async function sheetsUpdate(range,values){
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});
+}
+async function sheetsClear(range){
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`}});
+}
+async function ensureSheets(){
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`,{headers:{Authorization:`Bearer ${accessToken}`}});
+  const d=await r.json();
+  const existing=(d.sheets||[]).map(s=>s.properties.title);
+  const toCreate=Object.values(TABS).filter(t=>!existing.includes(t));
+  if(!toCreate.length)return;
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({requests:toCreate.map(title=>({addSheet:{properties:{title}}}))})});
 }
 
-async function sheetsUpdate(range, values) {
-  await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,
-    {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ range, majorDimension: 'ROWS', values }),
-    }
-  );
-}
+// ══════════════════ SERIALIZATION ══════════════════
+function rowToCausa(r){if(!r[0])return null;return{id:r[0],caratula:r[1]||'',numero:r[2]||'',jurisdiccion:r[3]||'PBA',fuero:r[4]||'civil',juzgado:r[5]||'',actora:r[6]||'',demandada:r[7]||'',urgencia:r[8]||'media',estado:r[9]||'activa',responsable:r[10]||'',etapa:r[11]||'',notas:r[12]||'',movimientos:safeJSON(r[13],[]),fechaCreacion:r[14]||''};}
+function causaToRow(c){return[c.id,c.caratula,c.numero,c.jurisdiccion,c.fuero,c.juzgado,c.actora,c.demandada,c.urgencia,c.estado,c.responsable,c.etapa,c.notas,JSON.stringify(c.movimientos||[]),c.fechaCreacion];}
+function rowToAud(r){if(!r[0])return null;return{id:r[0],fecha:r[1]||'',hora:r[2]||'',tipo:r[3]||'',descripcion:r[4]||'',notas:r[5]||'',causaId:r[6]||''};}
+function audToRow(a){return[a.id,a.fecha,a.hora,a.tipo,a.descripcion,a.notas,a.causaId];}
+function rowToAlerta(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',fecha:r[2]||'',descripcion:r[3]||'',causaId:r[4]||'',cumplida:r[5]==='true'};}
+function alertaToRow(a){return[a.id,a.titulo,a.fecha,a.descripcion,a.causaId,String(a.cumplida||false)];}
+function rowToTarea(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',responsable:r[2]||'',fecha:r[3]||'',prioridad:r[4]||'media',causaId:r[5]||'',descripcion:r[6]||'',completada:r[7]==='true'};}
+function tareaToRow(t){return[t.id,t.titulo,t.responsable,t.fecha,t.prioridad,t.causaId,t.descripcion,String(t.completada||false)];}
+function rowToCautelar(r){if(!r[0])return null;return{id:r[0],tipo:r[1]||'',causaId:r[2]||'',descripcion:r[3]||'',fechaTraba:r[4]||'',fechaCaducidad:r[5]||'',notas:r[6]||'',levantada:r[7]==='true'};}
+function cautelarToRow(c){return[c.id,c.tipo,c.causaId,c.descripcion,c.fechaTraba,c.fechaCaducidad,c.notas,String(c.levantada||false)];}
+function rowToHonorario(r){if(!r[0])return null;return{id:r[0],tipo:r[1]||'ingreso',monto:parseFloat(r[2])||0,concepto:r[3]||'',fecha:r[4]||'',causaId:r[5]||'',notas:r[6]||''};}
+function honorarioToRow(h){return[h.id,h.tipo,h.monto,h.concepto,h.fecha,h.causaId,h.notas];}
+function rowToPlantilla(r){if(!r[0])return null;return{id:r[0],nombre:r[1]||'',fuero:r[2]||'',contenido:r[3]||''};}
+function plantillaToRow(p){return[p.id,p.nombre,p.fuero,p.contenido];}
+function safeJSON(s,f){try{return JSON.parse(s||'');}catch{return f;}}
 
-async function sheetsClear(range) {
-  await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,
-    { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-}
-
-async function ensureSheets() {
-  // Get existing sheet names
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const data = await res.json();
-  const existing = (data.sheets || []).map(s => s.properties.title);
-
-  const toCreate = Object.values(TABS).filter(t => !existing.includes(t));
-  if (!toCreate.length) return;
-
-  await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: toCreate.map(title => ({ addSheet: { properties: { title } } }))
-      })
-    }
-  );
-}
-
-// ── DATA SERIALIZATION ──
-// Causas columns: id|caratula|numero|jurisdiccion|fuero|juzgado|actora|demandada|urgencia|estado|responsable|etapa|notas|movimientos_json|fechaCreacion
-const C_HEADERS = ['id','caratula','numero','jurisdiccion','fuero','juzgado','actora','demandada','urgencia','estado','responsable','etapa','notas','movimientos','fechaCreacion'];
-const A_HEADERS = ['id','fecha','hora','tipo','descripcion','notas','causaId'];
-const AL_HEADERS = ['id','titulo','fecha','descripcion','causaId','cumplida'];
-
-function rowToCausa(row) {
-  if (!row[0]) return null;
-  return {
-    id: row[0]||'', caratula: row[1]||'', numero: row[2]||'',
-    jurisdiccion: row[3]||'PBA', fuero: row[4]||'civil',
-    juzgado: row[5]||'', actora: row[6]||'', demandada: row[7]||'',
-    urgencia: row[8]||'media', estado: row[9]||'activa',
-    responsable: row[10]||'', etapa: row[11]||'', notas: row[12]||'',
-    movimientos: safeJSON(row[13], []), fechaCreacion: row[14]||'',
-  };
-}
-function causaToRow(c) {
-  return [c.id,c.caratula,c.numero,c.jurisdiccion,c.fuero,c.juzgado,c.actora,c.demandada,c.urgencia,c.estado,c.responsable,c.etapa,c.notas,JSON.stringify(c.movimientos||[]),c.fechaCreacion];
-}
-function rowToAudiencia(row) {
-  if (!row[0]) return null;
-  return { id:row[0]||'', fecha:row[1]||'', hora:row[2]||'', tipo:row[3]||'', descripcion:row[4]||'', notas:row[5]||'', causaId:row[6]||'' };
-}
-function audienciaToRow(a) { return [a.id,a.fecha,a.hora,a.tipo,a.descripcion,a.notas,a.causaId]; }
-function rowToAlerta(row) {
-  if (!row[0]) return null;
-  return { id:row[0]||'', titulo:row[1]||'', fecha:row[2]||'', descripcion:row[3]||'', causaId:row[4]||'', cumplida:row[5]==='true' };
-}
-function alertaToRow(a) { return [a.id,a.titulo,a.fecha,a.descripcion,a.causaId,String(a.cumplida||false)]; }
-function safeJSON(str, fallback) { try { return JSON.parse(str||''); } catch { return fallback; } }
-
-// ── LOAD ALL DATA ──
-async function loadAllData() {
-  try {
-    const [rc, ra, ral] = await Promise.all([
-      sheetsGet(`${TABS.causas}!A2:O`),
-      sheetsGet(`${TABS.audiencias}!A2:G`),
-      sheetsGet(`${TABS.alertas}!A2:F`),
+// ══════════════════ LOAD / SAVE ══════════════════
+async function loadAllData(){
+  try{
+    const [rc,ra,ral,rt,rcat,rh,rpl]=await Promise.all([
+      sheetsGet(`${TABS.causas}!A2:O`),sheetsGet(`${TABS.audiencias}!A2:G`),sheetsGet(`${TABS.alertas}!A2:F`),
+      sheetsGet(`${TABS.tareas}!A2:H`),sheetsGet(`${TABS.cautelares}!A2:H`),sheetsGet(`${TABS.honorarios}!A2:G`),sheetsGet(`${TABS.plantillas}!A2:D`),
     ]);
-    state.causas = (rc.values||[]).map(rowToCausa).filter(Boolean);
-    state.audiencias = (ra.values||[]).map(rowToAudiencia).filter(Boolean);
-    state.alertas = (ral.values||[]).map(rowToAlerta).filter(Boolean);
+    state.causas=(rc.values||[]).map(rowToCausa).filter(Boolean);
+    state.audiencias=(ra.values||[]).map(rowToAud).filter(Boolean);
+    state.alertas=(ral.values||[]).map(rowToAlerta).filter(Boolean);
+    state.tareas=(rt.values||[]).map(rowToTarea).filter(Boolean);
+    state.cautelares=(rcat.values||[]).map(rowToCautelar).filter(Boolean);
+    state.honorarios=(rh.values||[]).map(rowToHonorario).filter(Boolean);
+    state.plantillas=(rpl.values||[]).map(rowToPlantilla).filter(Boolean);
     setSyncStatus('ok');
-  } catch(e) {
-    toast('Error al cargar datos: ' + e.message, 'error');
-    setSyncStatus('error');
-  }
+  }catch(e){toast('Error al cargar: '+e.message,'error');setSyncStatus('error');}
 }
+async function syncAll(){setSyncStatus('syncing');await loadAllData();renderPage(state.currentPage);updateBadges();toast('Datos sincronizados ✓','success');}
 
-async function syncAll() {
-  setSyncStatus('syncing');
-  await loadAllData();
-  renderPage(state.currentPage);
-  updateBadges();
-  toast('Datos sincronizados ✓', 'success');
-}
+async function writeCausas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.causas}!A1:O`);await sheetsUpdate(`${TABS.causas}!A1`,[['id','caratula','numero','jurisdiccion','fuero','juzgado','actora','demandada','urgencia','estado','responsable','etapa','notas','movimientos','fechaCreacion'],...state.causas.map(causaToRow)]);setSyncStatus('ok');}catch(e){toast('Error: '+e.message,'error');setSyncStatus('error');}}
+async function writeAudiencias(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.audiencias}!A1:G`);await sheetsUpdate(`${TABS.audiencias}!A1`,[['id','fecha','hora','tipo','descripcion','notas','causaId'],...state.audiencias.map(audToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writeAlertas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.alertas}!A1:F`);await sheetsUpdate(`${TABS.alertas}!A1`,[['id','titulo','fecha','descripcion','causaId','cumplida'],...state.alertas.map(alertaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writeTareas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.tareas}!A1:H`);await sheetsUpdate(`${TABS.tareas}!A1`,[['id','titulo','responsable','fecha','prioridad','causaId','descripcion','completada'],...state.tareas.map(tareaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writeCautelares(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.cautelares}!A1:H`);await sheetsUpdate(`${TABS.cautelares}!A1`,[['id','tipo','causaId','descripcion','fechaTraba','fechaCaducidad','notas','levantada'],...state.cautelares.map(cautelarToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writeHonorarios(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.honorarios}!A1:G`);await sheetsUpdate(`${TABS.honorarios}!A1`,[['id','tipo','monto','concepto','fecha','causaId','notas'],...state.honorarios.map(honorarioToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writePlantillas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.plantillas}!A1:D`);await sheetsUpdate(`${TABS.plantillas}!A1`,[['id','nombre','fuero','contenido'],...state.plantillas.map(plantillaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 
-// ── WRITE DATA ──
-async function writeCausas() {
-  setSyncStatus('syncing');
-  try {
-    await sheetsClear(`${TABS.causas}!A1:O`);
-    const rows = [C_HEADERS, ...state.causas.map(causaToRow)];
-    await sheetsUpdate(`${TABS.causas}!A1`, rows);
-    setSyncStatus('ok');
-  } catch(e) { toast('Error al guardar: ' + e.message, 'error'); setSyncStatus('error'); }
-}
-async function writeAudiencias() {
-  setSyncStatus('syncing');
-  try {
-    await sheetsClear(`${TABS.audiencias}!A1:G`);
-    const rows = [A_HEADERS, ...state.audiencias.map(audienciaToRow)];
-    await sheetsUpdate(`${TABS.audiencias}!A1`, rows);
-    setSyncStatus('ok');
-  } catch(e) { toast('Error al guardar: ' + e.message, 'error'); setSyncStatus('error'); }
-}
-async function writeAlertas() {
-  setSyncStatus('syncing');
-  try {
-    await sheetsClear(`${TABS.alertas}!A1:F`);
-    const rows = [AL_HEADERS, ...state.alertas.map(alertaToRow)];
-    await sheetsUpdate(`${TABS.alertas}!A1`, rows);
-    setSyncStatus('ok');
-  } catch(e) { toast('Error al guardar: ' + e.message, 'error'); setSyncStatus('error'); }
-}
-
-// ── NAVIGATION ──
-function navigate(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
-  const navMap = {dashboard:0,causas:1,agenda:2,alertas:3};
-  const navItems = document.querySelectorAll('.nav-item');
-  if (navMap[page]!==undefined) navItems[navMap[page]].classList.add('active');
-  state.currentPage = page;
+// ══════════════════ NAVIGATION ══════════════════
+function navigate(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+page);
+  if(pg)pg.classList.add('active');
+  const navMap={dashboard:0,causas:1,tareas:2,agenda:3,alertas:4,cautelares:5,honorarios:6,plantillas:7,estadisticas:8};
+  const navItems=document.querySelectorAll('.nav-item');
+  if(navMap[page]!==undefined&&navItems[navMap[page]])navItems[navMap[page]].classList.add('active');
+  state.currentPage=page;
   renderPage(page);
 }
-function renderPage(page) {
-  if (page==='dashboard') renderDashboard();
-  else if (page==='causas') renderCausas();
-  else if (page==='agenda') renderAgenda();
-  else if (page==='alertas') renderAlertas();
+function renderPage(p){
+  if(p==='dashboard')renderDashboard();
+  else if(p==='causas')renderCausas();
+  else if(p==='tareas')renderTareas();
+  else if(p==='agenda')renderAgenda();
+  else if(p==='alertas')renderAlertas();
+  else if(p==='cautelares')renderCautelares();
+  else if(p==='honorarios')renderHonorarios();
+  else if(p==='plantillas')renderPlantillas();
+  else if(p==='estadisticas')renderEstadisticas();
 }
 
-// ── UTILS ──
-function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function formatDate(d) { if(!d)return'—'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; }
-function daysUntil(d) { if(!d)return null; const t=new Date(); t.setHours(0,0,0,0); return Math.round((new Date(d+'T00:00:00')-t)/86400000); }
-function todayISO() { return new Date().toISOString().split('T')[0]; }
-function fueroLabel(f) { return {civil:'Civil y Comercial',laboral:'Laboral',familia:'Familia',penal:'Penal'}[f]||f; }
-function fueroClass(f) { return {civil:'f-civil',laboral:'f-laboral',familia:'f-familia',penal:'f-penal'}[f]||''; }
-function fueroColor(f) { return {civil:'#5a8ae0',laboral:'#5ac8d8',familia:'#a05ae0',penal:'#e05a5a'}[f]||'#666'; }
-function estadoLabel(e) { return {activa:'Activa',en_tramite:'En trámite',suspendida:'Suspendida',archivada:'Archivada'}[e]||e; }
+// ══════════════════ UTILS ══════════════════
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function formatDate(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
+function daysUntil(d){if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(d+'T00:00:00')-t)/86400000);}
+function todayISO(){return new Date().toISOString().split('T')[0];}
+function fueroLabel(f){return{civil:'Civil y Comercial',laboral:'Laboral',familia:'Familia',penal:'Penal'}[f]||f;}
+function fueroClass(f){return{civil:'f-civil',laboral:'f-laboral',familia:'f-familia',penal:'f-penal'}[f]||'';}
+function fueroColor(f){return{civil:'#5a8ae0',laboral:'#5ac8d8',familia:'#a05ae0',penal:'#e05a5a'}[f]||'#666';}
+function estadoLabel(e){return{activa:'Activa',en_tramite:'En trámite',suspendida:'Suspendida',archivada:'Archivada'}[e]||e;}
+function formatMoney(n){return'$'+Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 
-// ── DASHBOARD ──
-function renderDashboard() {
-  const hoy = new Date();
+// ══════════════════ DASHBOARD ══════════════════
+function renderDashboard(){
+  const hoy=new Date();
+  const h=hoy.getHours();
+  const saludo=h<12?'Buenos días':h<18?'Buenas tardes':'Buenas noches';
+  document.getElementById('dash-saludo').textContent=saludo;
   const dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   document.getElementById('dash-fecha').textContent=`${dias[hoy.getDay()]}, ${hoy.getDate()} de ${meses[hoy.getMonth()]} de ${hoy.getFullYear()}`;
 
   const activas=state.causas.filter(c=>c.estado!=='archivada').length;
   const urgentes=state.causas.filter(c=>c.urgencia==='alta'&&c.estado!=='archivada').length;
-  const alertasCriticas=state.alertas.filter(a=>{ const d=daysUntil(a.fecha); return d!==null&&d<=3&&d>=0&&!a.cumplida; }).length;
+  const alertasCrit=state.alertas.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d<=3&&d>=0&&!a.cumplida;}).length;
   const hoyStr=todayISO();
-  const audienciasHoy=state.audiencias.filter(a=>a.fecha===hoyStr).length;
-  const proxSemana=state.audiencias.filter(a=>{ const d=daysUntil(a.fecha); return d!==null&&d>=0&&d<=7; }).length;
+  const audHoy=state.audiencias.filter(a=>a.fecha===hoyStr).length;
+  const tareasPend=state.tareas.filter(t=>!t.completada).length;
+  const ingresosTotal=state.honorarios.filter(h=>h.tipo==='ingreso').reduce((s,h)=>s+h.monto,0);
 
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card gold"><div class="stat-label">Causas activas</div><div class="stat-value">${activas}</div><div class="stat-sub">${state.causas.length} total</div></div>
     <div class="stat-card red"><div class="stat-label">Urgencia alta</div><div class="stat-value">${urgentes}</div><div class="stat-sub">Requieren atención</div></div>
-    <div class="stat-card orange"><div class="stat-label">Alertas críticas</div><div class="stat-value">${alertasCriticas}</div><div class="stat-sub">Vencen en ≤3 días</div></div>
-    <div class="stat-card blue"><div class="stat-label">Audiencias hoy</div><div class="stat-value">${audienciasHoy}</div><div class="stat-sub">${proxSemana} esta semana</div></div>
-    <div class="stat-card green"><div class="stat-label">PBA / PJN</div><div class="stat-value" style="font-size:22px;padding-top:6px">${state.causas.filter(c=>c.jurisdiccion==='PBA').length} · ${state.causas.filter(c=>c.jurisdiccion==='PJN').length}</div><div class="stat-sub">Provincia · Nacional</div></div>
+    <div class="stat-card orange"><div class="stat-label">Alertas críticas</div><div class="stat-value">${alertasCrit}</div><div class="stat-sub">Vencen en ≤3 días</div></div>
+    <div class="stat-card blue"><div class="stat-label">Audiencias hoy</div><div class="stat-value">${audHoy}</div><div class="stat-sub">${state.audiencias.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d>=0&&d<=7;}).length} esta semana</div></div>
+    <div class="stat-card purple"><div class="stat-label">Tareas pendientes</div><div class="stat-value">${tareasPend}</div><div class="stat-sub">${state.tareas.filter(t=>!t.completada&&t.prioridad==='alta').length} de alta prioridad</div></div>
+    <div class="stat-card green"><div class="stat-label">Honorarios cobrados</div><div class="stat-value" style="font-size:18px;padding-top:8px">${formatMoney(ingresosTotal)}</div><div class="stat-sub">Total acumulado</div></div>
   `;
 
-  const alertasCrit=state.alertas.filter(a=>!a.cumplida).map(a=>({...a,dias:daysUntil(a.fecha)})).filter(a=>a.dias!==null&&a.dias<=14).sort((a,b)=>a.dias-b.dias).slice(0,4);
-  const dashAlertas=document.getElementById('dash-alertas');
-  dashAlertas.innerHTML = alertasCrit.length
-    ? alertasCrit.map(alertaItemHTML).join('')
-    : `<div class="card" style="text-align:center;padding:30px;color:var(--text3)"><div style="font-size:28px">✓</div><div style="margin-top:8px;font-size:13px">Sin alertas próximas</div></div>`;
+  // Alertas prioritarias
+  const alertasDash=state.alertas.filter(a=>!a.cumplida).map(a=>({...a,dias:daysUntil(a.fecha)})).filter(a=>a.dias!==null&&a.dias<=14).sort((a,b)=>a.dias-b.dias).slice(0,3);
+  document.getElementById('dash-alertas').innerHTML=alertasDash.length
+    ?alertasDash.map(alertaItemHTML).join('')
+    :`<div class="card" style="text-align:center;padding:24px;color:var(--text3)"><div style="font-size:24px">✓</div><div style="margin-top:6px;font-size:13px">Sin alertas próximas</div></div>`;
 
+  // Tareas urgentes
+  const tareasDash=state.tareas.filter(t=>!t.completada&&t.prioridad==='alta').slice(0,3);
+  document.getElementById('dash-tareas').innerHTML=tareasDash.length
+    ?tareasDash.map(t=>{
+        const causa=state.causas.find(c=>c.id===t.causaId);
+        const d=daysUntil(t.fecha);
+        return`<div class="tarea-item" style="cursor:default">
+          <div class="tarea-check" onclick="toggleTarea('${t.id}')"></div>
+          <div class="tarea-content">
+            <div class="tarea-titulo">${t.titulo}</div>
+            <div class="tarea-meta">
+              <span class="tarea-prioridad tp-alta">alta</span>
+              ${t.responsable?`<span>👤 ${t.responsable}</span>`:''}
+              ${t.fecha?`<span>📅 ${formatDate(t.fecha)}${d===0?' — HOY':d<0?` — vencida hace ${Math.abs(d)}d`:''}</span>`:''}
+              ${causa?`<span>📁 ${causa.caratula.slice(0,30)}...</span>`:''}
+            </div>
+          </div>
+        </div>`;
+      }).join('')
+    :`<div class="card" style="text-align:center;padding:24px;color:var(--text3)"><div style="font-size:24px">✓</div><div style="margin-top:6px;font-size:13px">Sin tareas urgentes</div></div>`;
+
+  // Fuero stats
   const fueros=['civil','laboral','familia','penal'];
   const maxC=Math.max(...fueros.map(f=>state.causas.filter(c=>c.fuero===f).length),1);
   document.getElementById('dash-fuero-stats').innerHTML=fueros.map(f=>{
     const count=state.causas.filter(c=>c.fuero===f).length;
-    return `<div class="fuero-stat-row"><div class="fuero-stat-label">${fueroLabel(f)}</div><div class="fuero-bar"><div class="fuero-bar-fill" style="width:${Math.round(count/maxC*100)}%;background:${fueroColor(f)}"></div></div><div class="fuero-stat-count">${count}</div></div>`;
+    return`<div class="fuero-stat-row"><div class="fuero-stat-label">${fueroLabel(f)}</div><div class="fuero-bar"><div class="fuero-bar-fill" style="width:${Math.round(count/maxC*100)}%;background:${fueroColor(f)}"></div></div><div class="fuero-stat-count">${count}</div></div>`;
   }).join('');
 
-  const proximas=state.audiencias.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d>=0;}).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,4);
-  const dashAud=document.getElementById('dash-proximas-audiencias');
-  dashAud.innerHTML = proximas.length
-    ? proximas.map(a=>{
-        const d=daysUntil(a.fecha);
-        const causa=state.causas.find(c=>c.id===a.causaId);
-        return `<div class="agenda-item"><div class="agenda-time">${a.hora||'—'}</div><div class="agenda-content"><div class="agenda-tipo">${a.tipo} · ${formatDate(a.fecha)}${d===0?' <span style="color:var(--red)">HOY</span>':d===1?' mañana':''}</div><div class="agenda-desc">${a.descripcion||a.tipo}</div>${causa?`<div class="agenda-causa-ref">${causa.numero||''} ${causa.caratula}</div>`:''}</div></div>`;
+  // Próximas audiencias
+  const proxAud=state.audiencias.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d>=0;}).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,3);
+  document.getElementById('dash-proximas-audiencias').innerHTML=proxAud.length
+    ?proxAud.map(a=>{
+        const d=daysUntil(a.fecha);const causa=state.causas.find(c=>c.id===a.causaId);
+        return`<div class="agenda-item"><div class="agenda-time">${a.hora||'—'}</div><div class="agenda-content"><div class="agenda-tipo">${a.tipo} · ${formatDate(a.fecha)}${d===0?' <span style="color:var(--red)">HOY</span>':d===1?' mañana':''}</div><div class="agenda-desc">${a.descripcion||a.tipo}</div>${causa?`<div class="agenda-causa-ref">${causa.numero||''} ${causa.caratula}</div>`:''}</div></div>`;
       }).join('')
-    : `<div class="card" style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No hay audiencias programadas</div>`;
+    :`<div class="card" style="text-align:center;padding:18px;color:var(--text3);font-size:13px">Sin audiencias próximas</div>`;
+
+  // Cautelares por vencer
+  const cautelaresDash=state.cautelares.filter(c=>!c.levantada).map(c=>({...c,dias:daysUntil(c.fechaCaducidad)})).filter(c=>c.dias!==null&&c.dias<=30).sort((a,b)=>a.dias-b.dias).slice(0,3);
+  document.getElementById('dash-cautelares').innerHTML=cautelaresDash.length
+    ?cautelaresDash.map(c=>cautelarItemHTML(c)).join('')
+    :`<div class="card" style="text-align:center;padding:18px;color:var(--text3);font-size:13px">Sin cautelares próximas a vencer</div>`;
 
   updateBadges();
 }
 
-function alertaItemHTML(a) {
-  const d=a.dias!==undefined?a.dias:daysUntil(a.fecha);
-  const nivel=d<0?'critica':d<=2?'critica':d<=7?'urgente':'proxima';
-  const icon=nivel==='critica'?'🔴':nivel==='urgente'?'🟠':'🟡';
-  const diasLabel=d<0?`Vencido hace ${Math.abs(d)}d`:d===0?'Vence HOY':d===1?'Mañana':`${d} días`;
-  const causa=state.causas.find(c=>c.id===a.causaId);
-  return `<div class="alerta-item ${nivel}"><div class="alerta-icon">${icon}</div><div class="alerta-content"><div class="alerta-titulo">${a.titulo}</div><div class="alerta-desc">${a.descripcion||''}${causa?' · '+causa.caratula:''}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="alerta-dias">${diasLabel}</span>${d>=0?`<button class="btn btn-sm btn-ghost" onclick="marcarCumplida('${a.id}');event.stopPropagation()">✓</button>`:''}</div></div>`;
-}
-
-function updateBadges() {
-  const u=state.causas.filter(c=>c.urgencia==='alta'&&c.estado!=='archivada').length;
-  const el=document.getElementById('badge-urgentes');
-  el.style.display=u>0?'':'none'; if(u>0)el.textContent=u;
-  const al=state.alertas.filter(a=>!a.cumplida&&daysUntil(a.fecha)<=7&&daysUntil(a.fecha)>=-1).length;
-  const el2=document.getElementById('badge-alertas');
-  el2.style.display=al>0?'':'none'; if(al>0)el2.textContent=al;
-}
-
-// ── CAUSAS ──
-function renderCausas() {
+// ══════════════════ CAUSAS ══════════════════
+function renderCausas(){
   const search=document.getElementById('search-causas')?.value?.toLowerCase()||'';
   const fuero=document.getElementById('filter-fuero')?.value||'';
   const jur=document.getElementById('filter-jurisdiccion')?.value||'';
@@ -986,12 +995,11 @@ function renderCausas() {
   const cl=document.getElementById('causas-count-label');
   if(cl)cl.textContent=`${list.length} causa${list.length!==1?'s':''} encontrada${list.length!==1?'s':''}`;
   const container=document.getElementById('causas-list');
-  if(!list.length){
-    container.innerHTML=`<div class="empty-state"><div class="empty-icon">⚖️</div><div class="empty-title">No hay causas que coincidan</div><div class="empty-sub">Ajustá los filtros o cargá una nueva causa</div></div>`;
-    return;
-  }
-  container.innerHTML=list.map(c=>`
-    <div class="causa-item" onclick="showCausa('${c.id}')">
+  if(!list.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">⚖️</div><div class="empty-title">No hay causas que coincidan</div><div class="empty-sub">Ajustá los filtros o cargá una nueva causa</div></div>`;return;}
+  container.innerHTML=list.map(c=>{
+    const tareasC=state.tareas.filter(t=>t.causaId===c.id&&!t.completada).length;
+    const cautelaresC=state.cautelares.filter(ct=>ct.causaId===c.id&&!ct.levantada).length;
+    return`<div class="causa-item" onclick="showCausa('${c.id}')">
       <div style="padding-top:4px"><div class="causa-fuero-dot" style="background:${fueroColor(c.fuero)}"></div></div>
       <div>
         <div class="causa-numero">${c.numero||'Sin número'} <span class="jurisdiccion-badge">${c.jurisdiccion}</span></div>
@@ -1001,29 +1009,38 @@ function renderCausas() {
           ${c.juzgado?`<span>🏛️ ${c.juzgado}</span>`:''}
           ${c.etapa?`<span>📍 ${c.etapa}</span>`:''}
           ${c.responsable?`<span>👤 ${c.responsable}</span>`:''}
-          <span style="color:${c.estado==='archivada'?'var(--text3)':'var(--text2)'}">${estadoLabel(c.estado)}</span>
+          <span class="estado-badge estado-${c.estado}">${estadoLabel(c.estado)}</span>
+          ${tareasC>0?`<span style="color:var(--purple)">✓ ${tareasC} tarea${tareasC>1?'s':''}</span>`:''}
+          ${cautelaresC>0?`<span style="color:var(--orange)">🛡 ${cautelaresC} cautelar${cautelaresC>1?'es':''}</span>`:''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <span class="urgency-badge urgency-${c.urgencia}">${c.urgencia}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-function showCausa(causaId) {
+function showCausa(causaId){
   const c=state.causas.find(x=>x.id===causaId);
   if(!c)return;
   state.currentCausaId=causaId;
   const movimientos=(c.movimientos||[]).slice().reverse();
+  const tareasC=state.tareas.filter(t=>t.causaId===c.id);
+  const cautelaresC=state.cautelares.filter(ct=>ct.causaId===c.id);
+  const honorariosC=state.honorarios.filter(h=>h.causaId===c.id);
+  const totalIngresos=honorariosC.filter(h=>h.tipo==='ingreso').reduce((s,h)=>s+h.monto,0);
+  const totalEgresos=honorariosC.filter(h=>h.tipo==='egreso').reduce((s,h)=>s+h.monto,0);
+
   document.getElementById('causa-detail-content').innerHTML=`
     <div class="causa-detail-header">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
         <div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
             <span class="fuero-badge ${fueroClass(c.fuero)}">${fueroLabel(c.fuero)}</span>
             <span class="jurisdiccion-badge">${c.jurisdiccion}</span>
             <span class="urgency-badge urgency-${c.urgencia}">${c.urgencia}</span>
-            <span class="tag">${estadoLabel(c.estado)}</span>
+            <span class="estado-badge estado-${c.estado}">${estadoLabel(c.estado)}</span>
           </div>
           <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--text);line-height:1.2">${c.caratula}</div>
         </div>
@@ -1040,82 +1057,215 @@ function showCausa(causaId) {
         <div><div class="detail-field-label">Etapa procesal</div><div class="detail-field-value">${c.etapa||'—'}</div></div>
         <div><div class="detail-field-label">Responsable</div><div class="detail-field-value">${c.responsable||'—'}</div></div>
       </div>
-      ${c.notas?`<div style="margin-top:6px"><div class="detail-field-label" style="margin-bottom:6px">Notas internas</div><div style="background:var(--surface2);border-radius:6px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6">${c.notas}</div></div>`:''}
+      ${c.notas?`<div><div class="detail-field-label" style="margin-bottom:6px">Notas internas</div><div style="background:var(--surface2);border-radius:6px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6">${c.notas}</div></div>`:''}
     </div>
-    <div style="display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="openModalMovimiento('${c.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Agregar movimiento</button>
+
+    <div class="btn-group" style="margin-bottom:24px">
+      <button class="btn btn-primary" onclick="openModalMovimiento('${c.id}')">+ Movimiento</button>
+      <button class="btn btn-ghost" onclick="openModalTarea(null,'${c.id}')">✓ Tarea</button>
       <button class="btn btn-ghost" onclick="openModalAudiencia('${c.id}')">📅 Audiencia</button>
       <button class="btn btn-ghost" onclick="openModalAlerta('${c.id}')">🔔 Alerta</button>
+      <button class="btn btn-ghost" onclick="openModalCautelar('${c.id}')">🛡 Cautelar</button>
+      <button class="btn btn-ghost" onclick="openModalHonorario('${c.id}')">$ Honorario</button>
     </div>
-    <div class="section-title">Historial de movimientos</div>
-    ${movimientos.length===0
-      ?`<div class="card" style="text-align:center;padding:30px;color:var(--text3)"><div style="font-size:24px">📄</div><div style="margin-top:8px">Sin movimientos registrados</div></div>`
-      :movimientos.map(m=>`<div class="movimiento-item"><div class="movimiento-date">${formatDate(m.fecha)}</div><div><div class="movimiento-text">${m.texto}</div>${m.autor?`<div class="movimiento-autor">— ${m.autor}</div>`:''}</div></div>`).join('')}
+
+    <div class="tabs" id="causa-tabs">
+      <div class="tab active" onclick="switchCausaTab('movimientos')">Movimientos (${movimientos.length})</div>
+      <div class="tab" onclick="switchCausaTab('tareas')">Tareas (${tareasC.length})</div>
+      <div class="tab" onclick="switchCausaTab('cautelares')">Cautelares (${cautelaresC.length})</div>
+      <div class="tab" onclick="switchCausaTab('finanzas')">Honorarios</div>
+    </div>
+
+    <div id="causa-tab-movimientos">
+      ${movimientos.length===0
+        ?`<div class="card" style="text-align:center;padding:30px;color:var(--text3)"><div>📄</div><div style="margin-top:8px">Sin movimientos registrados</div></div>`
+        :movimientos.map(m=>`<div class="movimiento-item"><div class="movimiento-date">${formatDate(m.fecha)}</div><div><div class="movimiento-text">${m.texto}</div>${m.autor?`<div class="movimiento-autor">— ${m.autor}</div>`:''}</div></div>`).join('')}
+    </div>
+
+    <div id="causa-tab-tareas" style="display:none">
+      ${tareasC.length===0
+        ?`<div class="card" style="text-align:center;padding:30px;color:var(--text3)">Sin tareas para esta causa</div>`
+        :tareasC.map(t=>`<div class="tarea-item ${t.completada?'completada':''}">
+            <div class="tarea-check ${t.completada?'done':''}" onclick="toggleTarea('${t.id}')">✓</div>
+            <div class="tarea-content">
+              <div class="tarea-titulo">${t.titulo}</div>
+              <div class="tarea-meta">
+                <span class="tarea-prioridad tp-${t.prioridad}">${t.prioridad}</span>
+                ${t.responsable?`<span>👤 ${t.responsable}</span>`:''}
+                ${t.fecha?`<span>📅 ${formatDate(t.fecha)}</span>`:''}
+              </div>
+              ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:6px">${t.descripcion}</div>`:''}
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="deleteTarea('${t.id}')">🗑</button>
+          </div>`).join('')}
+    </div>
+
+    <div id="causa-tab-cautelares" style="display:none">
+      ${cautelaresC.length===0
+        ?`<div class="card" style="text-align:center;padding:30px;color:var(--text3)">Sin cautelares para esta causa</div>`
+        :cautelaresC.map(ct=>cautelarItemHTML(ct)).join('')}
+    </div>
+
+    <div id="causa-tab-finanzas" style="display:none">
+      <div class="balance-card">
+        <div class="balance-item"><div class="balance-label">Ingresos</div><div class="balance-value" style="color:var(--green)">${formatMoney(totalIngresos)}</div></div>
+        <div class="balance-item"><div class="balance-label">Egresos</div><div class="balance-value" style="color:var(--red)">${formatMoney(totalEgresos)}</div></div>
+        <div class="balance-item"><div class="balance-label">Balance</div><div class="balance-value" style="color:${totalIngresos-totalEgresos>=0?'var(--green)':'var(--red)'}">${formatMoney(totalIngresos-totalEgresos)}</div></div>
+      </div>
+      ${honorariosC.length===0
+        ?`<div class="card" style="text-align:center;padding:30px;color:var(--text3)">Sin registros para esta causa</div>`
+        :honorariosC.sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(h=>`
+          <div class="honorario-item">
+            <div class="honorario-monto ${h.tipo}">${h.tipo==='ingreso'?'+':'-'}${formatMoney(h.monto)}</div>
+            <div class="honorario-content">
+              <div class="honorario-concepto">${h.concepto}</div>
+              <div class="honorario-meta">${formatDate(h.fecha)}${h.notas?' · '+h.notas:''}</div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="deleteHonorario('${h.id}')">🗑</button>
+          </div>`).join('')}
+    </div>
   `;
+
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-causa-detail').classList.add('active');
 }
 
-async function deleteCausa(causaId) {
-  if(!confirm('¿Seguro que querés eliminar esta causa? Esta acción no se puede deshacer.'))return;
-  state.causas=state.causas.filter(c=>c.id!==causaId);
-  await writeCausas();
-  toast('Causa eliminada','success');
-  navigate('causas');
+function switchCausaTab(tab){
+  ['movimientos','tareas','cautelares','finanzas'].forEach(t=>{
+    document.getElementById('causa-tab-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('#causa-tabs .tab').forEach((el,i)=>{
+    el.classList.toggle('active',['movimientos','tareas','cautelares','finanzas'][i]===tab);
+  });
 }
 
-function editCausa(causaId) {
-  const c=state.causas.find(x=>x.id===causaId);
-  if(!c)return;
+async function deleteCausa(causaId){
+  if(!confirm('¿Seguro que querés eliminar esta causa?'))return;
+  state.causas=state.causas.filter(c=>c.id!==causaId);
+  await writeCausas(); toast('Causa eliminada','success'); navigate('causas');
+}
+
+function editCausa(causaId){
+  const c=state.causas.find(x=>x.id===causaId);if(!c)return;
   state.editingCausaId=causaId;
   document.getElementById('modal-causa-title').textContent='Editar Causa';
-  document.getElementById('mc-caratula').value=c.caratula||'';
-  document.getElementById('mc-numero').value=c.numero||'';
+  ['caratula','numero','juzgado','actora','demandada','responsable','etapa','notas'].forEach(f=>{document.getElementById('mc-'+f).value=c[f]||'';});
   document.getElementById('mc-jurisdiccion').value=c.jurisdiccion||'PBA';
   document.getElementById('mc-fuero').value=c.fuero||'civil';
-  document.getElementById('mc-juzgado').value=c.juzgado||'';
-  document.getElementById('mc-actora').value=c.actora||'';
-  document.getElementById('mc-demandada').value=c.demandada||'';
   document.getElementById('mc-urgencia').value=c.urgencia||'media';
   document.getElementById('mc-estado').value=c.estado||'activa';
-  document.getElementById('mc-responsable').value=c.responsable||'';
-  document.getElementById('mc-etapa').value=c.etapa||'';
-  document.getElementById('mc-notas').value=c.notas||'';
   document.getElementById('modal-causa').classList.add('open');
 }
 
-// ── AGENDA ──
-function renderAgenda() {
-  const futuras=state.audiencias.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d>=0;}).sort((a,b)=>{ if(a.fecha!==b.fecha)return a.fecha.localeCompare(b.fecha); return (a.hora||'').localeCompare(b.hora||''); });
-  const pasadas=state.audiencias.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d<0;}).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,10);
-  const container=document.getElementById('agenda-list');
-  if(!state.audiencias.length){
-    container.innerHTML=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin audiencias programadas</div><div class="empty-sub">Agregá audiencias usando el botón de arriba</div></div>`;
-    return;
+// ══════════════════ TAREAS ══════════════════
+function renderTareas(){
+  const filtEst=document.getElementById('filter-tarea-estado')?.value||'pendiente';
+  const filtResp=document.getElementById('filter-tarea-responsable')?.value||'';
+  const filtPrio=document.getElementById('filter-tarea-prioridad')?.value||'';
+
+  // Populate responsable filter
+  const respSel=document.getElementById('filter-tarea-responsable');
+  if(respSel){
+    const responsables=[...new Set(state.tareas.map(t=>t.responsable).filter(Boolean))];
+    const cur=respSel.value;
+    respSel.innerHTML='<option value="">Todos los responsables</option>'+responsables.map(r=>`<option value="${r}" ${r===cur?'selected':''}>${r}</option>`).join('');
   }
+
+  let list=state.tareas.filter(t=>{
+    if(filtEst==='pendiente'&&t.completada)return false;
+    if(filtEst==='completada'&&!t.completada)return false;
+    if(filtResp&&t.responsable!==filtResp)return false;
+    if(filtPrio&&t.prioridad!==filtPrio)return false;
+    return true;
+  });
+
+  const urgOrd={alta:0,media:1,baja:2};
+  list.sort((a,b)=>{
+    if(a.completada!==b.completada)return a.completada?1:-1;
+    const po=(urgOrd[a.prioridad]||1)-(urgOrd[b.prioridad]||1);
+    if(po!==0)return po;
+    return(a.fecha||'').localeCompare(b.fecha||'');
+  });
+
+  const container=document.getElementById('tareas-list');
+  if(!list.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">No hay tareas en esta vista</div><div class="empty-sub">¡Todo al día!</div></div>`;return;}
+
+  container.innerHTML=list.map(t=>{
+    const causa=state.causas.find(c=>c.id===t.causaId);
+    const d=daysUntil(t.fecha);
+    const vencida=!t.completada&&d!==null&&d<0;
+    return`<div class="tarea-item ${t.completada?'completada':''}">
+      <div class="tarea-check ${t.completada?'done':''}" onclick="toggleTarea('${t.id}')">✓</div>
+      <div class="tarea-content">
+        <div class="tarea-titulo">${t.titulo}</div>
+        <div class="tarea-meta">
+          <span class="tarea-prioridad tp-${t.prioridad}">${t.prioridad}</span>
+          ${t.responsable?`<span>👤 ${t.responsable}</span>`:''}
+          ${t.fecha?`<span style="color:${vencida?'var(--red)':'inherit'}">📅 ${formatDate(t.fecha)}${d===0?' — HOY':vencida?` — vencida hace ${Math.abs(d)}d`:''}</span>`:''}
+          ${causa?`<span>📁 ${causa.caratula.slice(0,35)}${causa.caratula.length>35?'...':''}</span>`:''}
+        </div>
+        ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:6px">${t.descripcion}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="editTarea('${t.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTarea('${t.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleTarea(tareaId){
+  const t=state.tareas.find(x=>x.id===tareaId);
+  if(!t)return;
+  t.completada=!t.completada;
+  await writeTareas();
+  updateBadges();
+  renderPage(state.currentPage);
+  if(state.currentCausaId)showCausa(state.currentCausaId);
+}
+
+async function deleteTarea(id){
+  if(!confirm('¿Eliminar esta tarea?'))return;
+  state.tareas=state.tareas.filter(t=>t.id!==id);
+  await writeTareas(); updateBadges();
+  if(state.currentPage==='tareas')renderTareas();
+  else if(state.currentCausaId)showCausa(state.currentCausaId);
+}
+
+function editTarea(tareaId){
+  const t=state.tareas.find(x=>x.id===tareaId);if(!t)return;
+  state.editingTareaId=tareaId;
+  document.getElementById('modal-tarea-title').textContent='Editar Tarea';
+  document.getElementById('mt-titulo').value=t.titulo||'';
+  document.getElementById('mt-responsable').value=t.responsable||'';
+  document.getElementById('mt-fecha').value=t.fecha||'';
+  document.getElementById('mt-prioridad').value=t.prioridad||'media';
+  document.getElementById('mt-descripcion').value=t.descripcion||'';
+  populateCausaSelect('mt-causa',t.causaId);
+  document.getElementById('modal-tarea').classList.add('open');
+}
+
+// ══════════════════ AGENDA ══════════════════
+function renderAgenda(){
+  const futuras=state.audiencias.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d>=0;}).sort((a,b)=>a.fecha!==b.fecha?a.fecha.localeCompare(b.fecha):(a.hora||'').localeCompare(b.hora||''));
+  const pasadas=state.audiencias.filter(a=>{const d=daysUntil(a.fecha);return d!==null&&d<0;}).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,15);
+  const container=document.getElementById('agenda-list');
+  if(!state.audiencias.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Sin audiencias programadas</div></div>`;return;}
   let html='';
   if(futuras.length){
-    let lastDate='';
-    html+='<div class="section-title">Próximas</div>';
+    let lastDate='';html+='<div class="section-title">Próximas</div>';
     futuras.forEach(a=>{
-      if(a.fecha!==lastDate){
-        const d=daysUntil(a.fecha);
-        html+=`<div class="agenda-day-header">${d===0?'HOY':d===1?'Mañana':formatDate(a.fecha)}</div>`;
-        lastDate=a.fecha;
-      }
+      if(a.fecha!==lastDate){const d=daysUntil(a.fecha);html+=`<div class="agenda-day-header">${d===0?'HOY':d===1?'Mañana':formatDate(a.fecha)}</div>`;lastDate=a.fecha;}
       html+=audienciaItemHTML(a);
     });
   }
-  if(pasadas.length){
-    html+='<div class="section-title" style="margin-top:30px">Historial reciente</div>';
-    pasadas.forEach(a=>html+=audienciaItemHTML(a,true));
-  }
+  if(pasadas.length){html+='<div class="section-title" style="margin-top:30px">Historial reciente</div>';pasadas.forEach(a=>html+=audienciaItemHTML(a,true));}
   container.innerHTML=html;
 }
 
-function audienciaItemHTML(a,past=false) {
+function audienciaItemHTML(a,past=false){
   const causa=state.causas.find(c=>c.id===a.causaId);
-  return `<div class="agenda-item" style="${past?'opacity:0.55':''}">
+  return`<div class="agenda-item" style="${past?'opacity:.55':''}">
     <div class="agenda-time">${a.hora||'—'}</div>
     <div class="agenda-content">
       <div class="agenda-tipo">${a.tipo}</div>
@@ -1127,181 +1277,583 @@ function audienciaItemHTML(a,past=false) {
   </div>`;
 }
 
-async function deleteAudiencia(id) {
+async function deleteAudiencia(id){
   if(!confirm('¿Eliminar esta audiencia?'))return;
   state.audiencias=state.audiencias.filter(a=>a.id!==id);
-  await writeAudiencias();
-  toast('Audiencia eliminada','success');
-  renderAgenda();
+  await writeAudiencias(); toast('Eliminada','success'); renderAgenda();
 }
 
-// ── ALERTAS ──
-function renderAlertas() {
+// ══════════════════ ALERTAS ══════════════════
+function renderAlertas(){
   const activas=state.alertas.filter(a=>!a.cumplida).map(a=>({...a,dias:daysUntil(a.fecha)})).sort((a,b)=>a.dias-b.dias);
-  const cumplidas=state.alertas.filter(a=>a.cumplida).slice(-5);
+  const cumplidas=state.alertas.filter(a=>a.cumplida).slice(-8);
   const container=document.getElementById('alertas-list');
-  if(!state.alertas.length){
-    container.innerHTML=`<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-title">Sin alertas cargadas</div><div class="empty-sub">Registrá vencimientos y plazos procesales importantes</div></div>`;
-    return;
-  }
+  if(!state.alertas.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-title">Sin alertas cargadas</div></div>`;return;}
   let html='';
-  if(activas.length){ html+='<div class="section-title">Activas</div>'; html+=activas.map(alertaItemHTML).join(''); }
+  if(activas.length){html+='<div class="section-title">Activas</div>';html+=activas.map(alertaItemHTML).join('');}
   if(cumplidas.length){
     html+='<div class="section-title" style="margin-top:24px">Cumplidas recientemente</div>';
-    html+=cumplidas.map(a=>`<div style="display:flex;gap:14px;padding:12px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;opacity:0.5">
+    html+=cumplidas.map(a=>`<div style="display:flex;gap:14px;padding:12px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;opacity:.5">
       <div style="font-size:18px">✅</div>
       <div style="flex:1"><div style="font-size:13px;font-weight:500;text-decoration:line-through;color:var(--text2)">${a.titulo}</div><div style="font-size:11px;color:var(--text3)">${formatDate(a.fecha)}</div></div>
       <button class="btn btn-danger btn-sm" onclick="deleteAlerta('${a.id}')">🗑</button>
     </div>`).join('');
   }
-  container.innerHTML=html;
-  updateBadges();
+  container.innerHTML=html; updateBadges();
 }
 
-async function marcarCumplida(alertaId) {
-  const a=state.alertas.find(x=>x.id===alertaId);
-  if(a){ a.cumplida=true; await writeAlertas(); toast('Alerta marcada como cumplida ✓','success'); }
-  renderPage(state.currentPage);
-  updateBadges();
+function alertaItemHTML(a){
+  const d=a.dias!==undefined?a.dias:daysUntil(a.fecha);
+  const nivel=d<0?'critica':d<=2?'critica':d<=7?'urgente':'proxima';
+  const icon=nivel==='critica'?'🔴':nivel==='urgente'?'🟠':'🟡';
+  const diasLabel=d<0?`Vencido hace ${Math.abs(d)}d`:d===0?'Vence HOY':d===1?'Mañana':`${d} días`;
+  const causa=state.causas.find(c=>c.id===a.causaId);
+  return`<div class="alerta-item ${nivel}">
+    <div class="alerta-icon">${icon}</div>
+    <div class="alerta-content">
+      <div class="alerta-titulo">${a.titulo}</div>
+      <div class="alerta-desc">${a.descripcion||''}${causa?' · '+causa.caratula.slice(0,40):''}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <span class="alerta-dias">${diasLabel}</span>
+      ${d>=0?`<button class="btn btn-sm btn-ghost" onclick="marcarCumplida('${a.id}');event.stopPropagation()">✓</button>`:''}
+      <button class="btn btn-sm btn-danger" onclick="deleteAlerta('${a.id}');event.stopPropagation()">🗑</button>
+    </div>
+  </div>`;
 }
 
-async function deleteAlerta(id) {
+async function marcarCumplida(id){
+  const a=state.alertas.find(x=>x.id===id);
+  if(a){a.cumplida=true;await writeAlertas();toast('Marcada como cumplida ✓','success');}
+  renderPage(state.currentPage); updateBadges();
+}
+async function deleteAlerta(id){
   if(!confirm('¿Eliminar esta alerta?'))return;
   state.alertas=state.alertas.filter(a=>a.id!==id);
-  await writeAlertas();
-  toast('Alerta eliminada','success');
-  renderAlertas();
+  await writeAlertas(); renderAlertas();
 }
 
-// ── MODALES ──
-function openModalCausa() {
+// ══════════════════ CAUTELARES ══════════════════
+function renderCautelares(){
+  const vigentes=state.cautelares.filter(c=>!c.levantada).map(c=>({...c,dias:daysUntil(c.fechaCaducidad)})).sort((a,b)=>a.dias-b.dias);
+  const levantadas=state.cautelares.filter(c=>c.levantada);
+  const container=document.getElementById('cautelares-list');
+  if(!state.cautelares.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">🛡️</div><div class="empty-title">Sin medidas cautelares registradas</div></div>`;return;}
+  let html='';
+  if(vigentes.length){html+='<div class="section-title">Vigentes</div>';html+=vigentes.map(cautelarItemHTML).join('');}
+  if(levantadas.length){
+    html+='<div class="section-title" style="margin-top:24px">Levantadas</div>';
+    html+=levantadas.map(c=>`<div style="opacity:.45">${cautelarItemHTML(c)}</div>`).join('');
+  }
+  container.innerHTML=html; updateBadges();
+}
+
+function cautelarItemHTML(c){
+  const dias=c.dias!==undefined?c.dias:daysUntil(c.fechaCaducidad);
+  const nivel=c.levantada?'vigente':dias===null?'vigente':dias<0?'vencida':dias<=30?'proxima':'vigente';
+  const diasLabel=dias===null?'Sin fecha':dias<0?`Vencida hace ${Math.abs(dias)}d`:dias===0?'Vence HOY':dias===1?'Mañana':`${dias} días`;
+  const causa=state.causas.find(x=>x.causaId===c.causaId||x.id===c.causaId);
+  const causaReal=state.causas.find(x=>x.id===c.causaId);
+  return`<div class="cautelar-item ${c.levantada?'':nivel}">
+    <div class="cautelar-content">
+      <div class="cautelar-tipo">${c.tipo}</div>
+      <div class="cautelar-desc">${c.descripcion||'—'}</div>
+      <div class="cautelar-meta">
+        ${causaReal?`📁 ${causaReal.caratula.slice(0,40)} · `:''}
+        Traba: ${formatDate(c.fechaTraba)} · Caducidad: ${formatDate(c.fechaCaducidad)}
+        ${c.notas?' · '+c.notas:''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      ${!c.levantada?`<span class="cautelar-dias">${diasLabel}</span>
+      <button class="btn btn-success btn-sm" onclick="levantarCautelar('${c.id}')">Levantar</button>`:'<span class="tag">Levantada</span>'}
+      <button class="btn btn-danger btn-sm" onclick="deleteCautelar('${c.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+
+async function levantarCautelar(id){
+  const c=state.cautelares.find(x=>x.id===id);
+  if(c){c.levantada=true;await writeCautelares();toast('Cautelar levantada ✓','success');}
+  renderPage(state.currentPage); updateBadges();
+}
+async function deleteCautelar(id){
+  if(!confirm('¿Eliminar esta cautelar?'))return;
+  state.cautelares=state.cautelares.filter(c=>c.id!==id);
+  await writeCautelares(); renderPage(state.currentPage);
+}
+
+// ══════════════════ HONORARIOS ══════════════════
+function renderHonorarios(){
+  // Populate causa filter
+  const sel=document.getElementById('filter-hon-causa');
+  if(sel){
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Todas las causas</option>'+state.causas.map(c=>`<option value="${c.id}" ${c.id===cur?'selected':''}>${c.numero||'Sin nro'} · ${c.caratula.slice(0,40)}</option>`).join('');
+  }
+  const filtCausa=document.getElementById('filter-hon-causa')?.value||'';
+  const filtTipo=document.getElementById('filter-hon-tipo')?.value||'';
+
+  let list=state.honorarios.filter(h=>{
+    if(filtCausa&&h.causaId!==filtCausa)return false;
+    if(filtTipo&&h.tipo!==filtTipo)return false;
+    return true;
+  }).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  const ingresos=list.filter(h=>h.tipo==='ingreso').reduce((s,h)=>s+h.monto,0);
+  const egresos=list.filter(h=>h.tipo==='egreso').reduce((s,h)=>s+h.monto,0);
+
+  document.getElementById('honorarios-balance').innerHTML=`
+    <div class="balance-card">
+      <div class="balance-item"><div class="balance-label">Ingresos (vista actual)</div><div class="balance-value" style="color:var(--green)">${formatMoney(ingresos)}</div></div>
+      <div class="balance-item"><div class="balance-label">Egresos (vista actual)</div><div class="balance-value" style="color:var(--red)">${formatMoney(egresos)}</div></div>
+      <div class="balance-item"><div class="balance-label">Balance</div><div class="balance-value" style="color:${ingresos-egresos>=0?'var(--green)':'var(--red)'}">${formatMoney(ingresos-egresos)}</div></div>
+    </div>`;
+
+  const container=document.getElementById('honorarios-list');
+  if(!list.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">💰</div><div class="empty-title">Sin registros</div></div>`;return;}
+  container.innerHTML=list.map(h=>{
+    const causa=state.causas.find(c=>c.id===h.causaId);
+    return`<div class="honorario-item">
+      <div class="honorario-monto ${h.tipo}">${h.tipo==='ingreso'?'+':'-'}${formatMoney(h.monto)}</div>
+      <div class="honorario-content">
+        <div class="honorario-concepto">${h.concepto}</div>
+        <div class="honorario-meta">${formatDate(h.fecha)}${causa?' · '+causa.caratula.slice(0,40):''}${h.notas?' · '+h.notas:''}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteHonorario('${h.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+async function deleteHonorario(id){
+  if(!confirm('¿Eliminar este registro?'))return;
+  state.honorarios=state.honorarios.filter(h=>h.id!==id);
+  await writeHonorarios(); renderHonorarios();
+  if(state.currentCausaId)showCausa(state.currentCausaId);
+}
+
+// ══════════════════ PLANTILLAS ══════════════════
+function renderPlantillas(){
+  const container=document.getElementById('plantillas-list');
+  if(!state.plantillas.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">Sin plantillas</div><div class="empty-sub">Cargá modelos de escritos frecuentes</div></div>`;return;}
+  container.innerHTML=state.plantillas.map(p=>`
+    <div class="plantilla-item">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="plantilla-nombre">${p.nombre}</div>
+          <div class="plantilla-fuero">${p.fuero?fueroLabel(p.fuero):'General'}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-primary btn-sm" onclick="usarPlantilla('${p.id}')">Usar</button>
+          <button class="btn btn-ghost btn-sm" onclick="editPlantilla('${p.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePlantilla('${p.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="plantilla-preview">${p.contenido.slice(0,200)}${p.contenido.length>200?'...':''}</div>
+    </div>
+  `).join('');
+}
+
+function usarPlantilla(plantillaId){
+  const p=state.plantillas.find(x=>x.id===plantillaId);
+  if(!p)return;
+  state.currentPlantillaId=plantillaId;
+  document.getElementById('usar-plantilla-content').innerHTML=`
+    <div class="page-header">
+      <div><div class="page-title">${p.nombre}</div><div class="page-subtitle">Seleccioná una causa para completar la plantilla</div></div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="form-group">
+        <label class="form-label">Causa para completar variables</label>
+        <select class="form-select" id="up-causa" onchange="renderPlantillaPreview('${p.id}')">
+          <option value="">— Sin causa (mantener variables) —</option>
+          ${state.causas.map(c=>`<option value="${c.id}">${c.numero||'Sin nro'} · ${c.caratula.slice(0,50)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="section-title">Vista previa del escrito</div>
+    <div class="card" style="margin-bottom:20px">
+      <textarea id="up-preview" class="form-textarea" style="min-height:360px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;background:transparent;border:none;padding:0;width:100%">${p.contenido}</textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="copiarPlantilla()">📋 Copiar al portapapeles</button>
+    </div>
+  `;
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+  document.getElementById('page-usar-plantilla').classList.add('active');
+}
+
+function renderPlantillaPreview(plantillaId){
+  const p=state.plantillas.find(x=>x.id===plantillaId);if(!p)return;
+  const causaId=document.getElementById('up-causa')?.value;
+  const c=state.causas.find(x=>x.id===causaId);
+  let texto=p.contenido;
+  if(c){
+    texto=texto
+      .replace(/\{caratula\}/g,c.caratula||'')
+      .replace(/\{numero\}/g,c.numero||'')
+      .replace(/\{actora\}/g,c.actora||'')
+      .replace(/\{demandada\}/g,c.demandada||'')
+      .replace(/\{juzgado\}/g,c.juzgado||'')
+      .replace(/\{responsable\}/g,c.responsable||'')
+      .replace(/\{etapa\}/g,c.etapa||'')
+      .replace(/\{jurisdiccion\}/g,c.jurisdiccion||'');
+  }
+  document.getElementById('up-preview').value=texto;
+}
+
+function copiarPlantilla(){
+  const texto=document.getElementById('up-preview')?.value;
+  if(!texto)return;
+  navigator.clipboard.writeText(texto).then(()=>toast('Copiado al portapapeles ✓','success')).catch(()=>toast('No se pudo copiar','error'));
+}
+
+function editPlantilla(plantillaId){
+  const p=state.plantillas.find(x=>x.id===plantillaId);if(!p)return;
+  state.editingPlantillaId=plantillaId;
+  document.getElementById('modal-plantilla-title').textContent='Editar Plantilla';
+  document.getElementById('mpl-nombre').value=p.nombre||'';
+  document.getElementById('mpl-fuero').value=p.fuero||'';
+  document.getElementById('mpl-contenido').value=p.contenido||'';
+  document.getElementById('modal-plantilla').classList.add('open');
+}
+
+async function deletePlantilla(id){
+  if(!confirm('¿Eliminar esta plantilla?'))return;
+  state.plantillas=state.plantillas.filter(p=>p.id!==id);
+  await writePlantillas(); renderPlantillas();
+}
+
+function seedDefaultPlantillas(){
+  if(state.plantillas.length>0)return;
+  const defaults=[
+    {id:uid(),nombre:'Nota encabezado general',fuero:'',contenido:`EXPTE. N°: {numero}
+CARATULA: {caratula}
+JUZGADO: {juzgado}
+
+Sr. Juez/a:
+
+{responsable}, abogado/a, en autos "{caratula}", Expte. N° {numero}, a V.S. me presento y respetuosamente digo:
+
+[Desarrollar aquí el contenido del escrito]
+
+Proveer de conformidad
+SERÁ JUSTICIA`},
+    {id:uid(),nombre:'Solicitud de vista de causa',fuero:'civil',contenido:`EXPTE. N°: {numero}
+CARATULA: {caratula}
+JUZGADO: {juzgado}
+
+Sr. Juez/a:
+
+{responsable}, letrado/a apoderado/a de la parte {actora}, en autos "{caratula}", Expte. N° {numero}, ante V.S. comparezco y solicito:
+
+Se tenga a mi parte por presentada y se ordene la vista de las actuaciones a los efectos de tomar conocimiento del estado procesal del expediente.
+
+Proveer de conformidad
+SERÁ JUSTICIA`},
+    {id:uid(),nombre:'Allanamiento a la mediación',fuero:'laboral',contenido:`EXPTE. N°: {numero}
+CARATULA: {caratula}
+
+Señor/a Mediador/a:
+
+{responsable}, en representación de {actora}, en el marco del procedimiento de mediación prejudicial obligatoria en autos "{caratula}", vengo a manifestar:
+
+Que mi mandante se allana a la instancia de mediación y queda a disposición del/la mediador/a para la fijación de la audiencia correspondiente.
+
+Sin otro particular, saludo a Ud. atentamente.`},
+  ];
+  state.plantillas=defaults;
+  writePlantillas();
+}
+
+// ══════════════════ ESTADÍSTICAS ══════════════════
+function renderEstadisticas(){
+  const container=document.getElementById('estadisticas-content');
+
+  const totalCausas=state.causas.length;
+  const activas=state.causas.filter(c=>c.estado==='activa').length;
+  const enTramite=state.causas.filter(c=>c.estado==='en_tramite').length;
+  const archivadas=state.causas.filter(c=>c.estado==='archivada').length;
+  const ingresos=state.honorarios.filter(h=>h.tipo==='ingreso').reduce((s,h)=>s+h.monto,0);
+  const egresos=state.honorarios.filter(h=>h.tipo==='egreso').reduce((s,h)=>s+h.monto,0);
+  const tareasPend=state.tareas.filter(t=>!t.completada).length;
+  const tareasComp=state.tareas.filter(t=>t.completada).length;
+
+  // Responsables
+  const responsables={};
+  state.causas.forEach(c=>{if(c.responsable){responsables[c.responsable]=(responsables[c.responsable]||0)+1;}});
+  const respArray=Object.entries(responsables).sort((a,b)=>b[1]-a[1]);
+
+  container.innerHTML=`
+    <div class="stats-grid" style="margin-bottom:28px">
+      <div class="stat-card gold"><div class="stat-label">Total causas</div><div class="stat-value">${totalCausas}</div><div class="stat-sub">Historial completo</div></div>
+      <div class="stat-card green"><div class="stat-label">Honorarios cobrados</div><div class="stat-value" style="font-size:18px;padding-top:8px">${formatMoney(ingresos)}</div><div class="stat-sub">Ingresos totales</div></div>
+      <div class="stat-card red"><div class="stat-label">Gastos registrados</div><div class="stat-value" style="font-size:18px;padding-top:8px">${formatMoney(egresos)}</div><div class="stat-sub">Egresos totales</div></div>
+      <div class="stat-card blue"><div class="stat-label">Balance neto</div><div class="stat-value" style="font-size:18px;padding-top:8px;color:${ingresos-egresos>=0?'var(--green)':'var(--red)'}">${formatMoney(ingresos-egresos)}</div><div class="stat-sub">Ingresos − egresos</div></div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:28px">
+      <div class="chart-container">
+        <div class="chart-title">Causas por fuero</div>
+        <canvas id="chart-fuero" height="200"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Causas por estado</div>
+        <canvas id="chart-estado" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:28px">
+      <div class="chart-container">
+        <div class="chart-title">Causas por jurisdicción</div>
+        <canvas id="chart-jur" height="180"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Tareas: pendientes vs completadas</div>
+        <canvas id="chart-tareas" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title">Carga de trabajo por abogado</div>
+    <div class="card">
+      ${respArray.length===0?`<div style="text-align:center;padding:20px;color:var(--text3)">Sin datos de responsables cargados</div>`:
+        respArray.map(([resp,count])=>`
+          <div class="fuero-stat-row" style="margin-bottom:10px">
+            <div class="fuero-stat-label" style="min-width:140px">👤 ${resp}</div>
+            <div class="fuero-bar"><div class="fuero-bar-fill" style="width:${Math.round(count/respArray[0][1]*100)}%;background:var(--gold)"></div></div>
+            <div class="fuero-stat-count">${count} causa${count!==1?'s':''}</div>
+          </div>`).join('')}
+    </div>
+
+    <div class="section-title">Honorarios por causa (top 5)</div>
+    <div class="card">
+      ${(() => {
+        const porCausa={};
+        state.honorarios.forEach(h=>{if(!porCausa[h.causaId])porCausa[h.causaId]={ing:0,eg:0};if(h.tipo==='ingreso')porCausa[h.causaId].ing+=h.monto;else porCausa[h.causaId].eg+=h.monto;});
+        const arr=Object.entries(porCausa).map(([id,v])=>({id,net:v.ing-v.eg,ing:v.ing})).sort((a,b)=>b.ing-a.ing).slice(0,5);
+        if(!arr.length)return`<div style="text-align:center;padding:20px;color:var(--text3)">Sin datos de honorarios</div>`;
+        return arr.map(({id,ing,net})=>{
+          const c=state.causas.find(x=>x.id===id);
+          return`<div class="fuero-stat-row" style="margin-bottom:12px;align-items:center">
+            <div style="flex:1;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c?c.caratula.slice(0,40):'Causa eliminada'}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--green);margin-left:12px;white-space:nowrap">${formatMoney(ing)}</div>
+          </div>`;
+        }).join('');
+      })()}
+    </div>
+  `;
+
+  // Render charts
+  setTimeout(()=>{
+    destroyChart('chart-fuero'); destroyChart('chart-estado'); destroyChart('chart-jur'); destroyChart('chart-tareas');
+    const chartOpts={responsive:true,plugins:{legend:{labels:{color:'#9a9db5',font:{family:'IBM Plex Sans',size:11}}}}};
+
+    // Fuero
+    const fueros=['civil','laboral','familia','penal'];
+    charts['chart-fuero']=new Chart(document.getElementById('chart-fuero'),{type:'doughnut',data:{labels:fueros.map(fueroLabel),datasets:[{data:fueros.map(f=>state.causas.filter(c=>c.fuero===f).length),backgroundColor:['#5a8ae0','#5ac8d8','#a05ae0','#e05a5a'],borderWidth:0}]},options:{...chartOpts,cutout:'65%'}});
+
+    // Estado
+    charts['chart-estado']=new Chart(document.getElementById('chart-estado'),{type:'bar',data:{labels:['Activa','En trámite','Suspendida','Archivada'],datasets:[{data:[activas,enTramite,state.causas.filter(c=>c.estado==='suspendida').length,archivadas],backgroundColor:['#5aae8a','#5a8ae0','#e0935a','#5a5d75'],borderRadius:6,borderWidth:0}]},options:{...chartOpts,scales:{x:{ticks:{color:'#5a5d75'},grid:{display:false}},y:{ticks:{color:'#5a5d75'},grid:{color:'#2e3044'}}},plugins:{...chartOpts.plugins,legend:{display:false}}}}});
+
+    // Jurisdicción
+    const pba=state.causas.filter(c=>c.jurisdiccion==='PBA').length;
+    const pjn=state.causas.filter(c=>c.jurisdiccion==='PJN').length;
+    charts['chart-jur']=new Chart(document.getElementById('chart-jur'),{type:'doughnut',data:{labels:['PBA','PJN'],datasets:[{data:[pba,pjn],backgroundColor:['#c9a84c','#5a8ae0'],borderWidth:0}]},options:{...chartOpts,cutout:'65%'}});
+
+    // Tareas
+    charts['chart-tareas']=new Chart(document.getElementById('chart-tareas'),{type:'doughnut',data:{labels:['Pendientes','Completadas'],datasets:[{data:[tareasPend,tareasComp],backgroundColor:['#e0935a','#5aae8a'],borderWidth:0}]},options:{...chartOpts,cutout:'65%'}});
+  },100);
+}
+
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+// ══════════════════ BADGES ══════════════════
+function updateBadges(){
+  const u=state.causas.filter(c=>c.urgencia==='alta'&&c.estado!=='archivada').length;
+  const el=document.getElementById('badge-urgentes');el.style.display=u>0?'':'none';if(u>0)el.textContent=u;
+  const al=state.alertas.filter(a=>!a.cumplida&&(daysUntil(a.fecha)||0)<=7&&(daysUntil(a.fecha)||0)>=-1).length;
+  const el2=document.getElementById('badge-alertas');el2.style.display=al>0?'':'none';if(al>0)el2.textContent=al;
+  const tp=state.tareas.filter(t=>!t.completada).length;
+  const el3=document.getElementById('badge-tareas');el3.style.display=tp>0?'':'none';if(tp>0)el3.textContent=tp;
+  const cat=state.cautelares.filter(c=>!c.levantada&&(daysUntil(c.fechaCaducidad)||999)<=30).length;
+  const el4=document.getElementById('badge-cautelares');el4.style.display=cat>0?'':'none';if(cat>0)el4.textContent=cat;
+}
+
+// ══════════════════ MODALES ══════════════════
+function openModalCausa(){
   state.editingCausaId=null;
   document.getElementById('modal-causa-title').textContent='Nueva Causa';
-  ['mc-caratula','mc-numero','mc-juzgado','mc-actora','mc-demandada','mc-responsable','mc-etapa','mc-notas'].forEach(id=>{ const el=document.getElementById(id);if(el)el.value=''; });
+  ['caratula','numero','juzgado','actora','demandada','responsable','etapa','notas'].forEach(f=>{const el=document.getElementById('mc-'+f);if(el)el.value='';});
   document.getElementById('mc-jurisdiccion').value='PBA';
   document.getElementById('mc-fuero').value='civil';
   document.getElementById('mc-urgencia').value='media';
   document.getElementById('mc-estado').value='activa';
   document.getElementById('modal-causa').classList.add('open');
 }
-function openModalAudiencia(prefillCausaId) {
+function openModalAudiencia(prefill){
   document.getElementById('ma-fecha').value=todayISO();
   document.getElementById('ma-hora').value='';
   document.getElementById('ma-tipo').value='Audiencia';
   document.getElementById('ma-descripcion').value='';
   document.getElementById('ma-notas').value='';
-  populateCausaSelect('ma-causa',prefillCausaId);
+  populateCausaSelect('ma-causa',prefill);
   document.getElementById('modal-audiencia').classList.add('open');
 }
-function openModalAlerta(prefillCausaId) {
+function openModalAlerta(prefill){
   document.getElementById('mal-titulo').value='';
   document.getElementById('mal-fecha').value='';
   document.getElementById('mal-descripcion').value='';
-  populateCausaSelect('mal-causa',prefillCausaId);
+  populateCausaSelect('mal-causa',prefill);
   document.getElementById('modal-alerta').classList.add('open');
 }
-function openModalMovimiento(causaId) {
+function openModalMovimiento(causaId){
   state.currentMovimientoCausaId=causaId;
   document.getElementById('mm-fecha').value=todayISO();
   document.getElementById('mm-texto').value='';
   document.getElementById('mm-autor').value='';
   document.getElementById('modal-movimiento').classList.add('open');
 }
-function populateCausaSelect(selectId,prefill) {
-  const sel=document.getElementById(selectId);
-  sel.innerHTML='<option value="">— Sin causa vinculada —</option>'+
-    state.causas.map(c=>`<option value="${c.id}" ${c.id===prefill?'selected':''}>${c.numero||'Sin nro'} · ${c.caratula.slice(0,50)}</option>`).join('');
+function openModalTarea(tareaId,prefillCausaId){
+  state.editingTareaId=null;
+  document.getElementById('modal-tarea-title').textContent='Nueva Tarea';
+  document.getElementById('mt-titulo').value='';
+  document.getElementById('mt-responsable').value='';
+  document.getElementById('mt-fecha').value='';
+  document.getElementById('mt-prioridad').value='media';
+  document.getElementById('mt-descripcion').value='';
+  populateCausaSelect('mt-causa',prefillCausaId);
+  document.getElementById('modal-tarea').classList.add('open');
 }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function closeModalIfOverlay(event,id){ if(event.target===event.currentTarget)closeModal(id); }
+function openModalCautelar(prefillCausaId){
+  state.editingCautelarId=null;
+  document.getElementById('modal-cautelar-title').textContent='Nueva Medida Cautelar';
+  document.getElementById('mcat-tipo').value='Embargo preventivo';
+  document.getElementById('mcat-descripcion').value='';
+  document.getElementById('mcat-fecha-traba').value=todayISO();
+  document.getElementById('mcat-fecha-caducidad').value='';
+  document.getElementById('mcat-notas').value='';
+  populateCausaSelect('mcat-causa',prefillCausaId);
+  document.getElementById('modal-cautelar').classList.add('open');
+}
+function openModalHonorario(prefillCausaId){
+  document.getElementById('mh-tipo').value='ingreso';
+  document.getElementById('mh-monto').value='';
+  document.getElementById('mh-concepto').value='';
+  document.getElementById('mh-fecha').value=todayISO();
+  document.getElementById('mh-notas').value='';
+  populateCausaSelect('mh-causa',prefillCausaId);
+  document.getElementById('modal-honorario').classList.add('open');
+}
+function openModalPlantilla(){
+  state.editingPlantillaId=null;
+  document.getElementById('modal-plantilla-title').textContent='Nueva Plantilla';
+  document.getElementById('mpl-nombre').value='';
+  document.getElementById('mpl-fuero').value='';
+  document.getElementById('mpl-contenido').value='';
+  document.getElementById('modal-plantilla').classList.add('open');
+}
+function populateCausaSelect(selectId,prefill){
+  const sel=document.getElementById(selectId);if(!sel)return;
+  sel.innerHTML='<option value="">— Sin causa vinculada —</option>'+state.causas.map(c=>`<option value="${c.id}" ${c.id===prefill?'selected':''}>${c.numero||'Sin nro'} · ${c.caratula.slice(0,50)}</option>`).join('');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeModalIfOverlay(e,id){if(e.target===e.currentTarget)closeModal(id);}
 
-// ── SAVES ──
-async function saveCausa() {
+// ══════════════════ SAVES ══════════════════
+async function saveCausa(){
   const caratula=document.getElementById('mc-caratula').value.trim();
-  if(!caratula){ alert('La carátula es obligatoria.'); return; }
-  const btn=document.getElementById('btn-save-causa');
-  btn.disabled=true; btn.textContent='Guardando...';
-  try {
+  if(!caratula){alert('La carátula es obligatoria.');return;}
+  const btn=document.getElementById('btn-save-causa');btn.disabled=true;btn.textContent='Guardando...';
+  try{
     if(state.editingCausaId){
       const c=state.causas.find(x=>x.id===state.editingCausaId);
-      if(c){
-        c.caratula=caratula; c.numero=document.getElementById('mc-numero').value.trim();
-        c.jurisdiccion=document.getElementById('mc-jurisdiccion').value; c.fuero=document.getElementById('mc-fuero').value;
-        c.juzgado=document.getElementById('mc-juzgado').value.trim(); c.actora=document.getElementById('mc-actora').value.trim();
-        c.demandada=document.getElementById('mc-demandada').value.trim(); c.urgencia=document.getElementById('mc-urgencia').value;
-        c.estado=document.getElementById('mc-estado').value; c.responsable=document.getElementById('mc-responsable').value.trim();
-        c.etapa=document.getElementById('mc-etapa').value.trim(); c.notas=document.getElementById('mc-notas').value.trim();
-      }
-      await writeCausas();
-      closeModal('modal-causa');
-      toast('Causa actualizada ✓','success');
-      showCausa(state.editingCausaId);
-    } else {
-      const causa={
-        id:uid(), caratula, numero:document.getElementById('mc-numero').value.trim(),
-        jurisdiccion:document.getElementById('mc-jurisdiccion').value, fuero:document.getElementById('mc-fuero').value,
-        juzgado:document.getElementById('mc-juzgado').value.trim(), actora:document.getElementById('mc-actora').value.trim(),
-        demandada:document.getElementById('mc-demandada').value.trim(), urgencia:document.getElementById('mc-urgencia').value,
-        estado:document.getElementById('mc-estado').value, responsable:document.getElementById('mc-responsable').value.trim(),
-        etapa:document.getElementById('mc-etapa').value.trim(), notas:document.getElementById('mc-notas').value.trim(),
-        movimientos:[], fechaCreacion:todayISO(),
-      };
-      state.causas.push(causa);
-      await writeCausas();
-      closeModal('modal-causa');
-      toast('Causa guardada ✓','success');
-      navigate('causas');
+      if(c){c.caratula=caratula;['numero','juzgado','actora','demandada','responsable','etapa','notas'].forEach(f=>c[f]=document.getElementById('mc-'+f).value.trim());c.jurisdiccion=document.getElementById('mc-jurisdiccion').value;c.fuero=document.getElementById('mc-fuero').value;c.urgencia=document.getElementById('mc-urgencia').value;c.estado=document.getElementById('mc-estado').value;}
+      await writeCausas();closeModal('modal-causa');toast('Causa actualizada ✓','success');showCausa(state.editingCausaId);
+    }else{
+      const c={id:uid(),caratula,numero:document.getElementById('mc-numero').value.trim(),jurisdiccion:document.getElementById('mc-jurisdiccion').value,fuero:document.getElementById('mc-fuero').value,juzgado:document.getElementById('mc-juzgado').value.trim(),actora:document.getElementById('mc-actora').value.trim(),demandada:document.getElementById('mc-demandada').value.trim(),urgencia:document.getElementById('mc-urgencia').value,estado:document.getElementById('mc-estado').value,responsable:document.getElementById('mc-responsable').value.trim(),etapa:document.getElementById('mc-etapa').value.trim(),notas:document.getElementById('mc-notas').value.trim(),movimientos:[],fechaCreacion:todayISO()};
+      state.causas.push(c);await writeCausas();closeModal('modal-causa');toast('Causa guardada ✓','success');navigate('causas');
     }
     updateBadges();
-  } finally { btn.disabled=false; btn.textContent='Guardar Causa'; }
+  }finally{btn.disabled=false;btn.textContent='Guardar Causa';}
 }
 
-async function saveAudiencia() {
-  const fecha=document.getElementById('ma-fecha').value;
-  if(!fecha){ alert('La fecha es obligatoria.'); return; }
-  state.audiencias.push({
-    id:uid(), fecha, hora:document.getElementById('ma-hora').value,
-    tipo:document.getElementById('ma-tipo').value,
-    descripcion:document.getElementById('ma-descripcion').value.trim(),
-    notas:document.getElementById('ma-notas').value.trim(),
-    causaId:document.getElementById('ma-causa').value,
-  });
-  await writeAudiencias();
-  closeModal('modal-audiencia');
-  toast('Audiencia guardada ✓','success');
-  if(state.currentPage==='agenda')renderAgenda();
+async function saveAudiencia(){
+  const fecha=document.getElementById('ma-fecha').value;if(!fecha){alert('La fecha es obligatoria.');return;}
+  state.audiencias.push({id:uid(),fecha,hora:document.getElementById('ma-hora').value,tipo:document.getElementById('ma-tipo').value,descripcion:document.getElementById('ma-descripcion').value.trim(),notas:document.getElementById('ma-notas').value.trim(),causaId:document.getElementById('ma-causa').value});
+  await writeAudiencias();closeModal('modal-audiencia');toast('Audiencia guardada ✓','success');
+  if(state.currentPage==='agenda')renderAgenda();else renderDashboard();
+}
+
+async function saveAlerta(){
+  const titulo=document.getElementById('mal-titulo').value.trim();const fecha=document.getElementById('mal-fecha').value;
+  if(!titulo||!fecha){alert('El título y la fecha son obligatorios.');return;}
+  state.alertas.push({id:uid(),titulo,fecha,descripcion:document.getElementById('mal-descripcion').value.trim(),causaId:document.getElementById('mal-causa').value,cumplida:false});
+  await writeAlertas();closeModal('modal-alerta');toast('Alerta guardada ✓','success');
+  if(state.currentPage==='alertas')renderAlertas();else renderDashboard();updateBadges();
+}
+
+async function saveMovimiento(){
+  const texto=document.getElementById('mm-texto').value.trim();if(!texto){alert('El texto es obligatorio.');return;}
+  const c=state.causas.find(x=>x.id===state.currentMovimientoCausaId);if(!c)return;
+  if(!c.movimientos)c.movimientos=[];
+  c.movimientos.push({id:uid(),fecha:document.getElementById('mm-fecha').value,texto,autor:document.getElementById('mm-autor').value.trim()});
+  await writeCausas();closeModal('modal-movimiento');toast('Movimiento agregado ✓','success');showCausa(state.currentMovimientoCausaId);
+}
+
+async function saveTarea(){
+  const titulo=document.getElementById('mt-titulo').value.trim();if(!titulo){alert('El título es obligatorio.');return;}
+  const responsable=document.getElementById('mt-responsable').value.trim();if(!responsable){alert('El responsable es obligatorio.');return;}
+  const btn=document.getElementById('btn-save-tarea');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    if(state.editingTareaId){
+      const t=state.tareas.find(x=>x.id===state.editingTareaId);
+      if(t){t.titulo=titulo;t.responsable=responsable;t.fecha=document.getElementById('mt-fecha').value;t.prioridad=document.getElementById('mt-prioridad').value;t.causaId=document.getElementById('mt-causa').value;t.descripcion=document.getElementById('mt-descripcion').value.trim();}
+      await writeTareas();closeModal('modal-tarea');toast('Tarea actualizada ✓','success');renderTareas();
+    }else{
+      state.tareas.push({id:uid(),titulo,responsable,fecha:document.getElementById('mt-fecha').value,prioridad:document.getElementById('mt-prioridad').value,causaId:document.getElementById('mt-causa').value,descripcion:document.getElementById('mt-descripcion').value.trim(),completada:false});
+      await writeTareas();closeModal('modal-tarea');toast('Tarea guardada ✓','success');
+      if(state.currentPage==='tareas')renderTareas();else renderDashboard();
+    }
+    updateBadges();
+  }finally{btn.disabled=false;btn.textContent='Guardar Tarea';}
+}
+
+async function saveCautelar(){
+  const causaId=document.getElementById('mcat-causa').value;const fechaCaducidad=document.getElementById('mcat-fecha-caducidad').value;
+  if(!causaId){alert('Debe vincular una causa.');return;}if(!fechaCaducidad){alert('La fecha de caducidad es obligatoria.');return;}
+  const btn=document.getElementById('btn-save-cautelar');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const cat={id:uid(),tipo:document.getElementById('mcat-tipo').value,causaId,descripcion:document.getElementById('mcat-descripcion').value.trim(),fechaTraba:document.getElementById('mcat-fecha-traba').value,fechaCaducidad,notas:document.getElementById('mcat-notas').value.trim(),levantada:false};
+    if(state.editingCautelarId){const i=state.cautelares.findIndex(x=>x.id===state.editingCautelarId);if(i>=0){state.cautelares[i]={...state.cautelares[i],...cat,id:state.editingCautelarId};}}
+    else{state.cautelares.push(cat);}
+    await writeCautelares();closeModal('modal-cautelar');toast('Cautelar guardada ✓','success');
+    renderPage(state.currentPage);updateBadges();
+  }finally{btn.disabled=false;btn.textContent='Guardar';}
+}
+
+async function saveHonorario(){
+  const monto=parseFloat(document.getElementById('mh-monto').value);const concepto=document.getElementById('mh-concepto').value.trim();
+  if(!concepto||!monto){alert('El concepto y el monto son obligatorios.');return;}
+  state.honorarios.push({id:uid(),tipo:document.getElementById('mh-tipo').value,monto,concepto,fecha:document.getElementById('mh-fecha').value,causaId:document.getElementById('mh-causa').value,notas:document.getElementById('mh-notas').value.trim()});
+  await writeHonorarios();closeModal('modal-honorario');toast('Registro guardado ✓','success');
+  if(state.currentPage==='honorarios')renderHonorarios();
+  else if(state.currentCausaId)showCausa(state.currentCausaId);
   else renderDashboard();
 }
 
-async function saveAlerta() {
-  const titulo=document.getElementById('mal-titulo').value.trim();
-  const fecha=document.getElementById('mal-fecha').value;
-  if(!titulo||!fecha){ alert('El título y la fecha son obligatorios.'); return; }
-  state.alertas.push({
-    id:uid(), titulo, fecha,
-    descripcion:document.getElementById('mal-descripcion').value.trim(),
-    causaId:document.getElementById('mal-causa').value,
-    cumplida:false,
-  });
-  await writeAlertas();
-  closeModal('modal-alerta');
-  toast('Alerta guardada ✓','success');
-  if(state.currentPage==='alertas')renderAlertas();
-  else renderDashboard();
-  updateBadges();
-}
-
-async function saveMovimiento() {
-  const texto=document.getElementById('mm-texto').value.trim();
-  if(!texto){ alert('El texto del movimiento es obligatorio.'); return; }
-  const causa=state.causas.find(c=>c.id===state.currentMovimientoCausaId);
-  if(!causa)return;
-  if(!causa.movimientos)causa.movimientos=[];
-  causa.movimientos.push({ id:uid(), fecha:document.getElementById('mm-fecha').value, texto, autor:document.getElementById('mm-autor').value.trim() });
-  await writeCausas();
-  closeModal('modal-movimiento');
-  toast('Movimiento agregado ✓','success');
-  showCausa(state.currentMovimientoCausaId);
+async function savePlantilla(){
+  const nombre=document.getElementById('mpl-nombre').value.trim();const contenido=document.getElementById('mpl-contenido').value.trim();
+  if(!nombre||!contenido){alert('El nombre y el contenido son obligatorios.');return;}
+  const btn=document.getElementById('btn-save-plantilla');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    if(state.editingPlantillaId){
+      const p=state.plantillas.find(x=>x.id===state.editingPlantillaId);
+      if(p){p.nombre=nombre;p.fuero=document.getElementById('mpl-fuero').value;p.contenido=contenido;}
+    }else{
+      state.plantillas.push({id:uid(),nombre,fuero:document.getElementById('mpl-fuero').value,contenido});
+    }
+    await writePlantillas();closeModal('modal-plantilla');toast('Plantilla guardada ✓','success');renderPlantillas();
+  }finally{btn.disabled=false;btn.textContent='Guardar Plantilla';}
 }
 </script>
 </body>
