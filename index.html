@@ -412,7 +412,8 @@ canvas{max-width:100%;}
       <input type="text" class="search-input" id="search-causas" placeholder="Buscar por carátula, número o parte..." oninput="renderCausas()">
       <select class="filter-select" id="filter-fuero" onchange="renderCausas()">
         <option value="">Todos los fueros</option>
-        <option value="civil">Civil y Comercial</option>
+        <option value="civil">Civil y Comercial (PBA)</option>
+        <option value="comercial">Comercial (PJN)</option>
         <option value="laboral">Laboral</option>
         <option value="familia">Familia</option>
         <option value="penal">Penal</option>
@@ -566,16 +567,20 @@ canvas{max-width:100%;}
     <div class="modal-grid">
       <div class="form-group span2"><label class="form-label">Carátula *</label><input type="text" class="form-input" id="mc-caratula" placeholder="Ej: García Juan c/ Empresa SA s/ Laboral"></div>
       <div class="form-group"><label class="form-label">Número de expediente</label><input type="text" class="form-input" id="mc-numero" placeholder="12345/2024"></div>
-      <div class="form-group"><label class="form-label">Jurisdicción *</label><select class="form-select" id="mc-jurisdiccion"><option value="PBA">PBA — Provincia de Buenos Aires</option><option value="PJN">PJN — Poder Judicial de la Nación</option></select></div>
-      <div class="form-group"><label class="form-label">Fuero *</label><select class="form-select" id="mc-fuero"><option value="civil">Civil y Comercial</option><option value="laboral">Laboral</option><option value="familia">Familia</option><option value="penal">Penal</option></select></div>
-      <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input type="text" class="form-input" id="mc-juzgado" placeholder="Juzgado Civil N°5 La Plata"></div>
+      <div class="form-group"><label class="form-label">Jurisdicción *</label><select class="form-select" id="mc-jurisdiccion" onchange="onJurisdiccionChange()"><option value="PBA">PBA — Provincia de Buenos Aires</option><option value="PJN">PJN — Poder Judicial de la Nación</option></select></div>
+      <div class="form-group"><label class="form-label">Fuero *</label><select class="form-select" id="mc-fuero" onchange="onFueroChange()"><option value="civil">Civil y Comercial</option><option value="laboral">Laboral</option><option value="familia">Familia</option><option value="penal">Penal</option></select></div>
+      <div class="form-group span2" id="mc-localidad-group"><label class="form-label">Localidad / Departamento judicial</label><select class="form-select" id="mc-localidad" onchange="onLocalidadChange()"><option value="">— Sin especificar —</option></select></div>
+      <div class="form-group span2">
+        <label class="form-label">Juzgado / Tribunal</label>
+        <select class="form-select" id="mc-juzgado-select" onchange="onJuzgadoSelectChange()" style="margin-bottom:6px"><option value="">— Seleccioná un juzgado —</option></select>
+        <input type="text" class="form-input" id="mc-juzgado" placeholder="O escribí manualmente si no está en la lista..." style="font-size:12px;color:var(--text3)">
+      </div>
       <div class="form-group"><label class="form-label">Parte actora</label><input type="text" class="form-input" id="mc-actora" placeholder="Nombre del actor"></div>
       <div class="form-group"><label class="form-label">Parte demandada</label><input type="text" class="form-input" id="mc-demandada" placeholder="Nombre del demandado"></div>
       <div class="form-group"><label class="form-label">Urgencia</label><select class="form-select" id="mc-urgencia"><option value="media">Media</option><option value="alta">Alta</option><option value="baja">Baja</option></select></div>
       <div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="mc-estado"><option value="activa">Activa</option><option value="en_tramite">En trámite</option><option value="suspendida">Suspendida</option><option value="archivada">Archivada</option></select></div>
       <div class="form-group"><label class="form-label">Responsable / Abogado</label><input type="text" class="form-input" id="mc-responsable" placeholder="Nombre del abogado a cargo"></div>
       <div class="form-group"><label class="form-label">Etapa procesal</label><input type="text" class="form-input" id="mc-etapa" placeholder="Ej: Apertura a prueba"></div>
-      <div class="form-group span2"><label class="form-label">Localidad (PBA)</label><select class="form-select" id="mc-localidad"><option value="">— Sin especificar —</option></select></div>
       <div class="form-group span2"><label class="form-label">Notas / Observaciones</label><textarea class="form-textarea" id="mc-notas" placeholder="Observaciones, estrategia, notas internas..."></textarea></div>
     </div>
     <div class="modal-footer">
@@ -720,7 +725,7 @@ canvas{max-width:100%;}
     <div class="modal-grid">
       <div class="form-group"><label class="form-label">Nombre de la plantilla *</label><input type="text" class="form-input" id="mpl-nombre" placeholder="Ej: Demanda laboral inicial"></div>
       <div class="form-group"><label class="form-label">Fuero / Tipo</label>
-        <select class="form-select" id="mpl-fuero"><option value="">General</option><option value="civil">Civil y Comercial</option><option value="laboral">Laboral</option><option value="familia">Familia</option><option value="penal">Penal</option></select>
+        <select class="form-select" id="mpl-fuero"><option value="">General</option><option value="civil">Civil y Comercial (PBA)</option><option value="comercial">Comercial (PJN)</option><option value="laboral">Laboral</option><option value="familia">Familia</option><option value="penal">Penal</option></select>
       </div>
       <div class="form-group span2">
         <label class="form-label">Contenido del escrito *</label>
@@ -742,59 +747,594 @@ const SHEET_ID  = '1ZZtoSbPsGIzIGeBWNl1KwoUWpyvbzb46EV9ms2JEvoc';
 const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
 const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas' };
 
-// Localidades PBA agrupadas por departamento judicial
-const LOCALIDADES_PBA = [
-  // Departamento La Plata
-  'La Plata','Berisso','Ensenada','Brandsen','Cañuelas','General Paz','Lobos','Magdalena','Punta Indio','San Vicente',
-  // Departamento Quilmes
-  'Quilmes','Avellaneda','Berazategui','Florencio Varela','Lanús','Lomas de Zamora','Almirante Brown',
-  // Departamento Lomas de Zamora
-  'Esteban Echeverría','Ezeiza','Presidente Perón','San Vicente',
-  // Departamento Morón
-  'Morón','Hurlingham','Ituzaingó','Merlo','Moreno','General Rodríguez','Marcos Paz',
-  // Departamento San Martín
-  'San Martín','Tres de Febrero','San Miguel','Malvinas Argentinas','José C. Paz','Tigre','San Isidro','San Fernando','Vicente López',
-  // Departamento Zárate
-  'Zárate','Campana','Escobar','Pilar','Exaltación de la Cruz',
-  // Departamento Mercedes
-  'Mercedes','General Las Heras','Luján','San Andrés de Giles','Suipacha','Carmen de Areco',
-  // Departamento Junín
-  'Junín','Chacabuco','General Arenales','General Viamonte','Leandro N. Alem','Lincoln','Rojas',
-  // Departamento Pergamino
-  'Pergamino','Ramallo','San Nicolás','San Pedro',
-  // Departamento San Isidro
-  'San Isidro',
-  // Departamento Moreno
-  'Moreno',
-  // Departamento Necochea
-  'Necochea','Lobería','San Cayetano',
-  // Departamento Mar del Plata
-  'Mar del Plata','Balcarce','General Alvarado','General Pueyrredón','Mar Chiquita','Villa Gesell','Pinamar','General Madariaga',
-  // Departamento Dolores
-  'Dolores','Castelli','Chascomús','General Belgrano','General Guido','Maipú','Pila','Tordillo',
-  // Departamento Azul
-  'Azul','Benito Juárez','Las Flores','Olavarría','Rauch','Tandil','Tapalqué',
-  // Departamento Bahía Blanca
-  'Bahía Blanca','Coronel Rosales','Coronel Dorrego','Monte Hermoso','Villarino','Patagones',
-  // Departamento Trenque Lauquen
-  'Trenque Lauquen','Carlos Tejedor','Daireaux','General Viamonte','Hipólito Yrigoyen','Pellegrini','Rivadavia','Salliqueló','Tres Lomas',
-  // Departamento Pehuajó
-  'Pehuajó','Bolívar','Carlos Casares','General La Madrid','Guaminí','Nueve de Julio',
-  // Departamento Bragado
-  'Bragado','Alberti','General Arenales',
-  // Departamento Chivilcoy
-  'Chivilcoy','Alberti','Bragado','San Andrés de Giles',
-  // Departamento Coronel Suárez
-  'Coronel Suárez','Adolfo Alsina','Coronel Pringles','Puán','Saavedra',
-  // Departamento Tres Arroyos
-  'Tres Arroyos','Coronel Dorrego',
-  // Departamento Tandil
-  'Tandil',
-  // Departamento San Justo
-  'San Justo','La Matanza',
-  // Departamento Florencio Varela
-  'Florencio Varela',
-].filter((v, i, a) => a.indexOf(v) === i).sort();  // deduplicate and sort
+// ══════════════════ BASE DE DATOS JUZGADOS ══════════════════
+// PBA: organizado por fuero → localidad → lista de juzgados
+const JUZGADOS_PBA = {
+  civil: {
+    'La Plata': [
+      'Juzgado Civil y Comercial N°1 - La Plata','Juzgado Civil y Comercial N°2 - La Plata',
+      'Juzgado Civil y Comercial N°3 - La Plata','Juzgado Civil y Comercial N°4 - La Plata',
+      'Juzgado Civil y Comercial N°5 - La Plata','Juzgado Civil y Comercial N°6 - La Plata',
+      'Juzgado Civil y Comercial N°7 - La Plata','Juzgado Civil y Comercial N°8 - La Plata',
+      'Juzgado Civil y Comercial N°9 - La Plata','Juzgado Civil y Comercial N°10 - La Plata',
+      'Juzgado Civil y Comercial N°11 - La Plata','Juzgado Civil y Comercial N°12 - La Plata',
+      'Juzgado Civil y Comercial N°13 - La Plata','Juzgado Civil y Comercial N°14 - La Plata',
+      'Juzgado Civil y Comercial N°15 - La Plata','Juzgado Civil y Comercial N°16 - La Plata',
+      'Juzgado Civil y Comercial N°17 - La Plata','Juzgado Civil y Comercial N°18 - La Plata',
+      'Juzgado Civil y Comercial N°19 - La Plata','Juzgado Civil y Comercial N°20 - La Plata',
+      'Juzgado Civil y Comercial N°21 - La Plata','Juzgado Civil y Comercial N°22 - La Plata',
+      'Juzgado Civil y Comercial N°23 - La Plata','Juzgado Civil y Comercial N°24 - La Plata',
+      'Juzgado Civil y Comercial N°25 - La Plata',
+      'Cámara de Apelaciones Civil y Comercial - La Plata (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - La Plata (Sala II)',
+      'Cámara de Apelaciones Civil y Comercial - La Plata (Sala III)',
+    ],
+    'Quilmes': [
+      'Juzgado Civil y Comercial N°1 - Quilmes','Juzgado Civil y Comercial N°2 - Quilmes',
+      'Juzgado Civil y Comercial N°3 - Quilmes','Juzgado Civil y Comercial N°4 - Quilmes',
+      'Juzgado Civil y Comercial N°5 - Quilmes','Juzgado Civil y Comercial N°6 - Quilmes',
+      'Juzgado Civil y Comercial N°7 - Quilmes','Juzgado Civil y Comercial N°8 - Quilmes',
+      'Cámara de Apelaciones Civil y Comercial - Quilmes (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - Quilmes (Sala II)',
+    ],
+    'Lomas de Zamora': [
+      'Juzgado Civil y Comercial N°1 - Lomas de Zamora','Juzgado Civil y Comercial N°2 - Lomas de Zamora',
+      'Juzgado Civil y Comercial N°3 - Lomas de Zamora','Juzgado Civil y Comercial N°4 - Lomas de Zamora',
+      'Juzgado Civil y Comercial N°5 - Lomas de Zamora','Juzgado Civil y Comercial N°6 - Lomas de Zamora',
+      'Juzgado Civil y Comercial N°7 - Lomas de Zamora','Juzgado Civil y Comercial N°8 - Lomas de Zamora',
+      'Juzgado Civil y Comercial N°9 - Lomas de Zamora','Juzgado Civil y Comercial N°10 - Lomas de Zamora',
+      'Cámara de Apelaciones Civil y Comercial - Lomas de Zamora (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - Lomas de Zamora (Sala II)',
+    ],
+    'Morón': [
+      'Juzgado Civil y Comercial N°1 - Morón','Juzgado Civil y Comercial N°2 - Morón',
+      'Juzgado Civil y Comercial N°3 - Morón','Juzgado Civil y Comercial N°4 - Morón',
+      'Juzgado Civil y Comercial N°5 - Morón','Juzgado Civil y Comercial N°6 - Morón',
+      'Juzgado Civil y Comercial N°7 - Morón','Juzgado Civil y Comercial N°8 - Morón',
+      'Cámara de Apelaciones Civil y Comercial - Morón (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - Morón (Sala II)',
+    ],
+    'San Martín': [
+      'Juzgado Civil y Comercial N°1 - San Martín','Juzgado Civil y Comercial N°2 - San Martín',
+      'Juzgado Civil y Comercial N°3 - San Martín','Juzgado Civil y Comercial N°4 - San Martín',
+      'Juzgado Civil y Comercial N°5 - San Martín','Juzgado Civil y Comercial N°6 - San Martín',
+      'Juzgado Civil y Comercial N°7 - San Martín','Juzgado Civil y Comercial N°8 - San Martín',
+      'Juzgado Civil y Comercial N°9 - San Martín','Juzgado Civil y Comercial N°10 - San Martín',
+      'Cámara de Apelaciones Civil y Comercial - San Martín (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - San Martín (Sala II)',
+    ],
+    'San Isidro': [
+      'Juzgado Civil y Comercial N°1 - San Isidro','Juzgado Civil y Comercial N°2 - San Isidro',
+      'Juzgado Civil y Comercial N°3 - San Isidro','Juzgado Civil y Comercial N°4 - San Isidro',
+      'Juzgado Civil y Comercial N°5 - San Isidro','Juzgado Civil y Comercial N°6 - San Isidro',
+      'Juzgado Civil y Comercial N°7 - San Isidro','Juzgado Civil y Comercial N°8 - San Isidro',
+      'Cámara de Apelaciones Civil y Comercial - San Isidro (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - San Isidro (Sala II)',
+    ],
+    'Zárate': [
+      'Juzgado Civil y Comercial N°1 - Zárate','Juzgado Civil y Comercial N°2 - Zárate',
+      'Juzgado Civil y Comercial N°3 - Zárate',
+    ],
+    'Campana': ['Juzgado Civil y Comercial N°1 - Campana','Juzgado Civil y Comercial N°2 - Campana'],
+    'Pilar': ['Juzgado Civil y Comercial N°1 - Pilar','Juzgado Civil y Comercial N°2 - Pilar','Juzgado Civil y Comercial N°3 - Pilar'],
+    'Escobar': ['Juzgado Civil y Comercial N°1 - Escobar','Juzgado Civil y Comercial N°2 - Escobar'],
+    'Mercedes': [
+      'Juzgado Civil y Comercial N°1 - Mercedes','Juzgado Civil y Comercial N°2 - Mercedes',
+      'Juzgado Civil y Comercial N°3 - Mercedes','Juzgado Civil y Comercial N°4 - Mercedes',
+      'Cámara de Apelaciones Civil y Comercial - Mercedes',
+    ],
+    'Luján': ['Juzgado Civil y Comercial N°1 - Luján','Juzgado Civil y Comercial N°2 - Luján'],
+    'Junín': [
+      'Juzgado Civil y Comercial N°1 - Junín','Juzgado Civil y Comercial N°2 - Junín',
+      'Juzgado Civil y Comercial N°3 - Junín','Cámara de Apelaciones Civil y Comercial - Junín',
+    ],
+    'Mar del Plata': [
+      'Juzgado Civil y Comercial N°1 - Mar del Plata','Juzgado Civil y Comercial N°2 - Mar del Plata',
+      'Juzgado Civil y Comercial N°3 - Mar del Plata','Juzgado Civil y Comercial N°4 - Mar del Plata',
+      'Juzgado Civil y Comercial N°5 - Mar del Plata','Juzgado Civil y Comercial N°6 - Mar del Plata',
+      'Juzgado Civil y Comercial N°7 - Mar del Plata','Juzgado Civil y Comercial N°8 - Mar del Plata',
+      'Juzgado Civil y Comercial N°9 - Mar del Plata','Juzgado Civil y Comercial N°10 - Mar del Plata',
+      'Juzgado Civil y Comercial N°11 - Mar del Plata','Juzgado Civil y Comercial N°12 - Mar del Plata',
+      'Cámara de Apelaciones Civil y Comercial - Mar del Plata (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - Mar del Plata (Sala II)',
+      'Cámara de Apelaciones Civil y Comercial - Mar del Plata (Sala III)',
+    ],
+    'Bahía Blanca': [
+      'Juzgado Civil y Comercial N°1 - Bahía Blanca','Juzgado Civil y Comercial N°2 - Bahía Blanca',
+      'Juzgado Civil y Comercial N°3 - Bahía Blanca','Juzgado Civil y Comercial N°4 - Bahía Blanca',
+      'Juzgado Civil y Comercial N°5 - Bahía Blanca','Juzgado Civil y Comercial N°6 - Bahía Blanca',
+      'Cámara de Apelaciones Civil y Comercial - Bahía Blanca (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - Bahía Blanca (Sala II)',
+    ],
+    'Necochea': ['Juzgado Civil y Comercial N°1 - Necochea','Juzgado Civil y Comercial N°2 - Necochea'],
+    'Azul': [
+      'Juzgado Civil y Comercial N°1 - Azul','Juzgado Civil y Comercial N°2 - Azul',
+      'Juzgado Civil y Comercial N°3 - Azul','Cámara de Apelaciones Civil y Comercial - Azul (Sala I)',
+      'Cámara de Apelaciones Civil y Comercial - Azul (Sala II)',
+    ],
+    'Tandil': ['Juzgado Civil y Comercial N°1 - Tandil','Juzgado Civil y Comercial N°2 - Tandil','Juzgado Civil y Comercial N°3 - Tandil'],
+    'Olavarría': ['Juzgado Civil y Comercial N°1 - Olavarría','Juzgado Civil y Comercial N°2 - Olavarría'],
+    'Pergamino': ['Juzgado Civil y Comercial N°1 - Pergamino','Juzgado Civil y Comercial N°2 - Pergamino','Juzgado Civil y Comercial N°3 - Pergamino'],
+    'San Nicolás': ['Juzgado Civil y Comercial N°1 - San Nicolás','Juzgado Civil y Comercial N°2 - San Nicolás','Juzgado Civil y Comercial N°3 - San Nicolás'],
+    'Dolores': ['Juzgado Civil y Comercial N°1 - Dolores','Juzgado Civil y Comercial N°2 - Dolores'],
+    'Trenque Lauquen': ['Juzgado Civil y Comercial N°1 - Trenque Lauquen','Juzgado Civil y Comercial N°2 - Trenque Lauquen'],
+    'La Matanza': ['Juzgado Civil y Comercial N°1 - La Matanza','Juzgado Civil y Comercial N°2 - La Matanza','Juzgado Civil y Comercial N°3 - La Matanza'],
+    'Florencio Varela': ['Juzgado Civil y Comercial N°1 - Florencio Varela','Juzgado Civil y Comercial N°2 - Florencio Varela'],
+    'Berazategui': ['Juzgado Civil y Comercial N°1 - Berazategui','Juzgado Civil y Comercial N°2 - Berazategui'],
+    'Avellaneda': ['Juzgado Civil y Comercial N°1 - Avellaneda','Juzgado Civil y Comercial N°2 - Avellaneda','Juzgado Civil y Comercial N°3 - Avellaneda'],
+    'Lanús': ['Juzgado Civil y Comercial N°1 - Lanús','Juzgado Civil y Comercial N°2 - Lanús','Juzgado Civil y Comercial N°3 - Lanús'],
+    'Berisso': ['Juzgado Civil y Comercial N°1 - Berisso'],
+    'Ensenada': ['Juzgado Civil y Comercial N°1 - Ensenada'],
+    'Tigre': ['Juzgado Civil y Comercial N°1 - Tigre','Juzgado Civil y Comercial N°2 - Tigre','Juzgado Civil y Comercial N°3 - Tigre'],
+    'Vicente López': ['Juzgado Civil y Comercial N°1 - Vicente López','Juzgado Civil y Comercial N°2 - Vicente López'],
+    'Merlo': ['Juzgado Civil y Comercial N°1 - Merlo','Juzgado Civil y Comercial N°2 - Merlo'],
+    'Moreno': ['Juzgado Civil y Comercial N°1 - Moreno','Juzgado Civil y Comercial N°2 - Moreno'],
+    'San Miguel': ['Juzgado Civil y Comercial N°1 - San Miguel','Juzgado Civil y Comercial N°2 - San Miguel'],
+    'Malvinas Argentinas': ['Juzgado Civil y Comercial N°1 - Malvinas Argentinas'],
+    'José C. Paz': ['Juzgado Civil y Comercial N°1 - José C. Paz'],
+    'Chivilcoy': ['Juzgado Civil y Comercial N°1 - Chivilcoy','Juzgado Civil y Comercial N°2 - Chivilcoy'],
+    'Lincoln': ['Juzgado Civil y Comercial N°1 - Lincoln'],
+    'Pehuajó': ['Juzgado Civil y Comercial N°1 - Pehuajó'],
+    'Nueve de Julio': ['Juzgado Civil y Comercial N°1 - Nueve de Julio'],
+    'Coronel Suárez': ['Juzgado Civil y Comercial N°1 - Coronel Suárez'],
+    'Tres Arroyos': ['Juzgado Civil y Comercial N°1 - Tres Arroyos','Juzgado Civil y Comercial N°2 - Tres Arroyos'],
+  },
+  laboral: {
+    'La Plata': [
+      'Tribunal del Trabajo N°1 - La Plata','Tribunal del Trabajo N°2 - La Plata',
+      'Tribunal del Trabajo N°3 - La Plata','Tribunal del Trabajo N°4 - La Plata',
+      'Tribunal del Trabajo N°5 - La Plata','Tribunal del Trabajo N°6 - La Plata',
+      'Cámara de Apelaciones Laboral - La Plata',
+    ],
+    'Quilmes': [
+      'Tribunal del Trabajo N°1 - Quilmes','Tribunal del Trabajo N°2 - Quilmes',
+      'Tribunal del Trabajo N°3 - Quilmes','Tribunal del Trabajo N°4 - Quilmes',
+    ],
+    'Lomas de Zamora': [
+      'Tribunal del Trabajo N°1 - Lomas de Zamora','Tribunal del Trabajo N°2 - Lomas de Zamora',
+      'Tribunal del Trabajo N°3 - Lomas de Zamora','Tribunal del Trabajo N°4 - Lomas de Zamora',
+      'Tribunal del Trabajo N°5 - Lomas de Zamora','Tribunal del Trabajo N°6 - Lomas de Zamora',
+    ],
+    'Morón': [
+      'Tribunal del Trabajo N°1 - Morón','Tribunal del Trabajo N°2 - Morón',
+      'Tribunal del Trabajo N°3 - Morón','Tribunal del Trabajo N°4 - Morón',
+      'Tribunal del Trabajo N°5 - Morón',
+    ],
+    'San Martín': [
+      'Tribunal del Trabajo N°1 - San Martín','Tribunal del Trabajo N°2 - San Martín',
+      'Tribunal del Trabajo N°3 - San Martín','Tribunal del Trabajo N°4 - San Martín',
+      'Tribunal del Trabajo N°5 - San Martín','Tribunal del Trabajo N°6 - San Martín',
+    ],
+    'San Isidro': [
+      'Tribunal del Trabajo N°1 - San Isidro','Tribunal del Trabajo N°2 - San Isidro',
+      'Tribunal del Trabajo N°3 - San Isidro','Tribunal del Trabajo N°4 - San Isidro',
+    ],
+    'La Matanza': [
+      'Tribunal del Trabajo N°1 - La Matanza','Tribunal del Trabajo N°2 - La Matanza',
+      'Tribunal del Trabajo N°3 - La Matanza','Tribunal del Trabajo N°4 - La Matanza',
+    ],
+    'Avellaneda': [
+      'Tribunal del Trabajo N°1 - Avellaneda','Tribunal del Trabajo N°2 - Avellaneda',
+      'Tribunal del Trabajo N°3 - Avellaneda',
+    ],
+    'Lanús': ['Tribunal del Trabajo N°1 - Lanús','Tribunal del Trabajo N°2 - Lanús'],
+    'Mar del Plata': [
+      'Tribunal del Trabajo N°1 - Mar del Plata','Tribunal del Trabajo N°2 - Mar del Plata',
+      'Tribunal del Trabajo N°3 - Mar del Plata','Tribunal del Trabajo N°4 - Mar del Plata',
+    ],
+    'Bahía Blanca': [
+      'Tribunal del Trabajo N°1 - Bahía Blanca','Tribunal del Trabajo N°2 - Bahía Blanca',
+      'Tribunal del Trabajo N°3 - Bahía Blanca',
+    ],
+    'Mercedes': ['Tribunal del Trabajo N°1 - Mercedes','Tribunal del Trabajo N°2 - Mercedes'],
+    'Junín': ['Tribunal del Trabajo N°1 - Junín','Tribunal del Trabajo N°2 - Junín'],
+    'Azul': ['Tribunal del Trabajo N°1 - Azul','Tribunal del Trabajo N°2 - Azul'],
+    'Zárate': ['Tribunal del Trabajo N°1 - Zárate'],
+    'Campana': ['Tribunal del Trabajo N°1 - Campana'],
+    'Pergamino': ['Tribunal del Trabajo N°1 - Pergamino','Tribunal del Trabajo N°2 - Pergamino'],
+    'San Nicolás': ['Tribunal del Trabajo N°1 - San Nicolás','Tribunal del Trabajo N°2 - San Nicolás'],
+    'Necochea': ['Tribunal del Trabajo N°1 - Necochea'],
+    'Tandil': ['Tribunal del Trabajo N°1 - Tandil','Tribunal del Trabajo N°2 - Tandil'],
+    'Olavarría': ['Tribunal del Trabajo N°1 - Olavarría'],
+    'Florencio Varela': ['Tribunal del Trabajo N°1 - Florencio Varela','Tribunal del Trabajo N°2 - Florencio Varela'],
+    'Berazategui': ['Tribunal del Trabajo N°1 - Berazategui'],
+    'Tigre': ['Tribunal del Trabajo N°1 - Tigre','Tribunal del Trabajo N°2 - Tigre'],
+    'Moreno': ['Tribunal del Trabajo N°1 - Moreno','Tribunal del Trabajo N°2 - Moreno'],
+    'San Miguel': ['Tribunal del Trabajo N°1 - San Miguel'],
+    'Pilar': ['Tribunal del Trabajo N°1 - Pilar'],
+    'Escobar': ['Tribunal del Trabajo N°1 - Escobar'],
+    'Merlo': ['Tribunal del Trabajo N°1 - Merlo','Tribunal del Trabajo N°2 - Merlo'],
+    'Luján': ['Tribunal del Trabajo N°1 - Luján'],
+    'Chivilcoy': ['Tribunal del Trabajo N°1 - Chivilcoy'],
+    'Tres Arroyos': ['Tribunal del Trabajo N°1 - Tres Arroyos'],
+    'Trenque Lauquen': ['Tribunal del Trabajo N°1 - Trenque Lauquen'],
+  },
+  familia: {
+    'La Plata': [
+      'Juzgado de Familia N°1 - La Plata','Juzgado de Familia N°2 - La Plata',
+      'Juzgado de Familia N°3 - La Plata','Juzgado de Familia N°4 - La Plata',
+      'Juzgado de Familia N°5 - La Plata','Juzgado de Familia N°6 - La Plata',
+      'Juzgado de Familia N°7 - La Plata','Juzgado de Familia N°8 - La Plata',
+      'Cámara de Apelaciones de Familia - La Plata',
+    ],
+    'Quilmes': [
+      'Juzgado de Familia N°1 - Quilmes','Juzgado de Familia N°2 - Quilmes',
+      'Juzgado de Familia N°3 - Quilmes','Juzgado de Familia N°4 - Quilmes',
+    ],
+    'Lomas de Zamora': [
+      'Juzgado de Familia N°1 - Lomas de Zamora','Juzgado de Familia N°2 - Lomas de Zamora',
+      'Juzgado de Familia N°3 - Lomas de Zamora','Juzgado de Familia N°4 - Lomas de Zamora',
+      'Juzgado de Familia N°5 - Lomas de Zamora',
+    ],
+    'Morón': [
+      'Juzgado de Familia N°1 - Morón','Juzgado de Familia N°2 - Morón',
+      'Juzgado de Familia N°3 - Morón','Juzgado de Familia N°4 - Morón',
+    ],
+    'San Martín': [
+      'Juzgado de Familia N°1 - San Martín','Juzgado de Familia N°2 - San Martín',
+      'Juzgado de Familia N°3 - San Martín','Juzgado de Familia N°4 - San Martín',
+      'Juzgado de Familia N°5 - San Martín',
+    ],
+    'San Isidro': [
+      'Juzgado de Familia N°1 - San Isidro','Juzgado de Familia N°2 - San Isidro',
+      'Juzgado de Familia N°3 - San Isidro','Juzgado de Familia N°4 - San Isidro',
+    ],
+    'La Matanza': [
+      'Juzgado de Familia N°1 - La Matanza','Juzgado de Familia N°2 - La Matanza',
+      'Juzgado de Familia N°3 - La Matanza',
+    ],
+    'Mar del Plata': [
+      'Juzgado de Familia N°1 - Mar del Plata','Juzgado de Familia N°2 - Mar del Plata',
+      'Juzgado de Familia N°3 - Mar del Plata','Juzgado de Familia N°4 - Mar del Plata',
+    ],
+    'Bahía Blanca': [
+      'Juzgado de Familia N°1 - Bahía Blanca','Juzgado de Familia N°2 - Bahía Blanca',
+      'Juzgado de Familia N°3 - Bahía Blanca',
+    ],
+    'Mercedes': ['Juzgado de Familia N°1 - Mercedes','Juzgado de Familia N°2 - Mercedes'],
+    'Junín': ['Juzgado de Familia N°1 - Junín','Juzgado de Familia N°2 - Junín'],
+    'Azul': ['Juzgado de Familia N°1 - Azul','Juzgado de Familia N°2 - Azul'],
+    'Zárate': ['Juzgado de Familia N°1 - Zárate'],
+    'Pergamino': ['Juzgado de Familia N°1 - Pergamino','Juzgado de Familia N°2 - Pergamino'],
+    'San Nicolás': ['Juzgado de Familia N°1 - San Nicolás'],
+    'Tandil': ['Juzgado de Familia N°1 - Tandil','Juzgado de Familia N°2 - Tandil'],
+    'Olavarría': ['Juzgado de Familia N°1 - Olavarría'],
+    'Necochea': ['Juzgado de Familia N°1 - Necochea'],
+    'Florencio Varela': ['Juzgado de Familia N°1 - Florencio Varela','Juzgado de Familia N°2 - Florencio Varela'],
+    'Tigre': ['Juzgado de Familia N°1 - Tigre','Juzgado de Familia N°2 - Tigre'],
+    'Moreno': ['Juzgado de Familia N°1 - Moreno'],
+    'Pilar': ['Juzgado de Familia N°1 - Pilar'],
+    'Merlo': ['Juzgado de Familia N°1 - Merlo','Juzgado de Familia N°2 - Merlo'],
+    'Luján': ['Juzgado de Familia N°1 - Luján'],
+    'Berazategui': ['Juzgado de Familia N°1 - Berazategui'],
+    'Avellaneda': ['Juzgado de Familia N°1 - Avellaneda','Juzgado de Familia N°2 - Avellaneda'],
+    'Lanús': ['Juzgado de Familia N°1 - Lanús','Juzgado de Familia N°2 - Lanús'],
+    'Vicente López': ['Juzgado de Familia N°1 - Vicente López','Juzgado de Familia N°2 - Vicente López'],
+    'Trenque Lauquen': ['Juzgado de Familia N°1 - Trenque Lauquen'],
+    'Chivilcoy': ['Juzgado de Familia N°1 - Chivilcoy'],
+    'Tres Arroyos': ['Juzgado de Familia N°1 - Tres Arroyos'],
+  },
+  penal: {
+    'La Plata': [
+      'Tribunal en lo Criminal N°1 - La Plata','Tribunal en lo Criminal N°2 - La Plata',
+      'Tribunal en lo Criminal N°3 - La Plata','Tribunal en lo Criminal N°4 - La Plata',
+      'Tribunal en lo Criminal N°5 - La Plata','Tribunal en lo Criminal N°6 - La Plata',
+      'Juzgado de Garantías N°1 - La Plata','Juzgado de Garantías N°2 - La Plata',
+      'Juzgado de Garantías N°3 - La Plata','Juzgado de Garantías N°4 - La Plata',
+      'Juzgado de Garantías N°5 - La Plata','Juzgado de Garantías N°6 - La Plata',
+      'Juzgado de Garantías N°7 - La Plata','Juzgado de Garantías N°8 - La Plata',
+      'Cámara de Apelaciones y Garantías Penal - La Plata (Sala I)',
+      'Cámara de Apelaciones y Garantías Penal - La Plata (Sala II)',
+      'Cámara de Apelaciones y Garantías Penal - La Plata (Sala III)',
+    ],
+    'Quilmes': [
+      'Tribunal en lo Criminal N°1 - Quilmes','Tribunal en lo Criminal N°2 - Quilmes',
+      'Tribunal en lo Criminal N°3 - Quilmes',
+      'Juzgado de Garantías N°1 - Quilmes','Juzgado de Garantías N°2 - Quilmes',
+      'Juzgado de Garantías N°3 - Quilmes','Juzgado de Garantías N°4 - Quilmes',
+    ],
+    'Lomas de Zamora': [
+      'Tribunal en lo Criminal N°1 - Lomas de Zamora','Tribunal en lo Criminal N°2 - Lomas de Zamora',
+      'Tribunal en lo Criminal N°3 - Lomas de Zamora',
+      'Juzgado de Garantías N°1 - Lomas de Zamora','Juzgado de Garantías N°2 - Lomas de Zamora',
+      'Juzgado de Garantías N°3 - Lomas de Zamora','Juzgado de Garantías N°4 - Lomas de Zamora',
+    ],
+    'Morón': [
+      'Tribunal en lo Criminal N°1 - Morón','Tribunal en lo Criminal N°2 - Morón',
+      'Juzgado de Garantías N°1 - Morón','Juzgado de Garantías N°2 - Morón',
+      'Juzgado de Garantías N°3 - Morón',
+    ],
+    'San Martín': [
+      'Tribunal en lo Criminal N°1 - San Martín','Tribunal en lo Criminal N°2 - San Martín',
+      'Tribunal en lo Criminal N°3 - San Martín',
+      'Juzgado de Garantías N°1 - San Martín','Juzgado de Garantías N°2 - San Martín',
+      'Juzgado de Garantías N°3 - San Martín','Juzgado de Garantías N°4 - San Martín',
+    ],
+    'San Isidro': [
+      'Tribunal en lo Criminal N°1 - San Isidro','Tribunal en lo Criminal N°2 - San Isidro',
+      'Juzgado de Garantías N°1 - San Isidro','Juzgado de Garantías N°2 - San Isidro',
+      'Juzgado de Garantías N°3 - San Isidro',
+    ],
+    'La Matanza': [
+      'Tribunal en lo Criminal N°1 - La Matanza','Tribunal en lo Criminal N°2 - La Matanza',
+      'Juzgado de Garantías N°1 - La Matanza','Juzgado de Garantías N°2 - La Matanza',
+      'Juzgado de Garantías N°3 - La Matanza',
+    ],
+    'Mar del Plata': [
+      'Tribunal en lo Criminal N°1 - Mar del Plata','Tribunal en lo Criminal N°2 - Mar del Plata',
+      'Tribunal en lo Criminal N°3 - Mar del Plata',
+      'Juzgado de Garantías N°1 - Mar del Plata','Juzgado de Garantías N°2 - Mar del Plata',
+      'Juzgado de Garantías N°3 - Mar del Plata','Juzgado de Garantías N°4 - Mar del Plata',
+    ],
+    'Bahía Blanca': [
+      'Tribunal en lo Criminal N°1 - Bahía Blanca','Tribunal en lo Criminal N°2 - Bahía Blanca',
+      'Juzgado de Garantías N°1 - Bahía Blanca','Juzgado de Garantías N°2 - Bahía Blanca',
+    ],
+    'Azul': ['Tribunal en lo Criminal N°1 - Azul','Juzgado de Garantías N°1 - Azul','Juzgado de Garantías N°2 - Azul'],
+    'Junín': ['Tribunal en lo Criminal N°1 - Junín','Juzgado de Garantías N°1 - Junín','Juzgado de Garantías N°2 - Junín'],
+    'Mercedes': ['Tribunal en lo Criminal N°1 - Mercedes','Juzgado de Garantías N°1 - Mercedes','Juzgado de Garantías N°2 - Mercedes'],
+    'Zárate': ['Tribunal en lo Criminal N°1 - Zárate','Juzgado de Garantías N°1 - Zárate'],
+    'Pergamino': ['Tribunal en lo Criminal N°1 - Pergamino','Juzgado de Garantías N°1 - Pergamino'],
+    'Necochea': ['Tribunal en lo Criminal N°1 - Necochea','Juzgado de Garantías N°1 - Necochea'],
+    'Tandil': ['Tribunal en lo Criminal N°1 - Tandil','Juzgado de Garantías N°1 - Tandil'],
+    'Tigre': ['Tribunal en lo Criminal N°1 - Tigre','Juzgado de Garantías N°1 - Tigre','Juzgado de Garantías N°2 - Tigre'],
+    'Moreno': ['Tribunal en lo Criminal N°1 - Moreno','Juzgado de Garantías N°1 - Moreno'],
+    'Florencio Varela': ['Tribunal en lo Criminal N°1 - Florencio Varela','Juzgado de Garantías N°1 - Florencio Varela'],
+    'Pilar': ['Tribunal en lo Criminal N°1 - Pilar','Juzgado de Garantías N°1 - Pilar'],
+    'Trenque Lauquen': ['Tribunal en lo Criminal N°1 - Trenque Lauquen','Juzgado de Garantías N°1 - Trenque Lauquen'],
+    'Tres Arroyos': ['Tribunal en lo Criminal N°1 - Tres Arroyos','Juzgado de Garantías N°1 - Tres Arroyos'],
+  }
+};
+
+// PJN: organizado por fuero → lista de juzgados (sede CABA)
+const JUZGADOS_PJN = {
+  // ── Civil ─────────────────────────────────────────────────────────
+  civil: [
+    'Juzgado Nacional Civil N°1','Juzgado Nacional Civil N°2','Juzgado Nacional Civil N°3',
+    'Juzgado Nacional Civil N°4','Juzgado Nacional Civil N°5','Juzgado Nacional Civil N°6',
+    'Juzgado Nacional Civil N°7','Juzgado Nacional Civil N°8','Juzgado Nacional Civil N°9',
+    'Juzgado Nacional Civil N°10','Juzgado Nacional Civil N°11','Juzgado Nacional Civil N°12',
+    'Juzgado Nacional Civil N°13','Juzgado Nacional Civil N°14','Juzgado Nacional Civil N°15',
+    'Juzgado Nacional Civil N°16','Juzgado Nacional Civil N°17','Juzgado Nacional Civil N°18',
+    'Juzgado Nacional Civil N°19','Juzgado Nacional Civil N°20','Juzgado Nacional Civil N°21',
+    'Juzgado Nacional Civil N°22','Juzgado Nacional Civil N°23','Juzgado Nacional Civil N°24',
+    'Juzgado Nacional Civil N°25','Juzgado Nacional Civil N°26','Juzgado Nacional Civil N°27',
+    'Juzgado Nacional Civil N°28','Juzgado Nacional Civil N°29','Juzgado Nacional Civil N°30',
+    'Juzgado Nacional Civil N°31','Juzgado Nacional Civil N°32','Juzgado Nacional Civil N°33',
+    'Juzgado Nacional Civil N°34','Juzgado Nacional Civil N°35','Juzgado Nacional Civil N°36',
+    'Juzgado Nacional Civil N°37','Juzgado Nacional Civil N°38','Juzgado Nacional Civil N°39',
+    'Juzgado Nacional Civil N°40','Juzgado Nacional Civil N°41','Juzgado Nacional Civil N°42',
+    'Juzgado Nacional Civil N°43','Juzgado Nacional Civil N°44','Juzgado Nacional Civil N°45',
+    'Juzgado Nacional Civil N°46','Juzgado Nacional Civil N°47','Juzgado Nacional Civil N°48',
+    'Juzgado Nacional Civil N°49','Juzgado Nacional Civil N°50','Juzgado Nacional Civil N°51',
+    'Juzgado Nacional Civil N°52','Juzgado Nacional Civil N°53','Juzgado Nacional Civil N°54',
+    'Juzgado Nacional Civil N°55','Juzgado Nacional Civil N°56','Juzgado Nacional Civil N°57',
+    'Juzgado Nacional Civil N°58','Juzgado Nacional Civil N°59','Juzgado Nacional Civil N°60',
+    'Juzgado Nacional Civil N°61','Juzgado Nacional Civil N°62','Juzgado Nacional Civil N°63',
+    'Juzgado Nacional Civil N°64','Juzgado Nacional Civil N°65','Juzgado Nacional Civil N°66',
+    'Juzgado Nacional Civil N°67','Juzgado Nacional Civil N°68','Juzgado Nacional Civil N°69',
+    'Juzgado Nacional Civil N°70','Juzgado Nacional Civil N°71','Juzgado Nacional Civil N°72',
+    'Juzgado Nacional Civil N°73','Juzgado Nacional Civil N°74','Juzgado Nacional Civil N°75',
+    'Juzgado Nacional Civil N°76','Juzgado Nacional Civil N°77','Juzgado Nacional Civil N°78',
+    'Juzgado Nacional Civil N°79','Juzgado Nacional Civil N°80','Juzgado Nacional Civil N°81',
+    'Juzgado Nacional Civil N°82','Juzgado Nacional Civil N°83','Juzgado Nacional Civil N°84',
+    'Juzgado Nacional Civil N°85','Juzgado Nacional Civil N°86','Juzgado Nacional Civil N°87',
+    'Juzgado Nacional Civil N°88','Juzgado Nacional Civil N°89','Juzgado Nacional Civil N°90',
+    'Juzgado Nacional Civil N°91','Juzgado Nacional Civil N°92',
+    'Camara Nacional de Apelaciones Civil - Sala A','Camara Nacional de Apelaciones Civil - Sala B',
+    'Camara Nacional de Apelaciones Civil - Sala C','Camara Nacional de Apelaciones Civil - Sala D',
+    'Camara Nacional de Apelaciones Civil - Sala E','Camara Nacional de Apelaciones Civil - Sala F',
+    'Camara Nacional de Apelaciones Civil - Sala G','Camara Nacional de Apelaciones Civil - Sala H',
+    'Camara Nacional de Apelaciones Civil - Sala I','Camara Nacional de Apelaciones Civil - Sala J',
+    'Camara Nacional de Apelaciones Civil - Sala K','Camara Nacional de Apelaciones Civil - Sala L',
+    'Camara Nacional de Apelaciones Civil - Sala M',
+  ],
+  // ── Comercial ──────────────────────────────────────────────────────
+  comercial: [
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°1',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°2',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°3',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°4',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°5',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°6',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°7',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°8',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°9',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°10',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°11',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°12',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°13',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°14',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°15',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°16',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°17',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°18',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°19',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°20',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°21',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°22',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°23',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°24',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°25',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°26',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°27',
+    'Juzgado Nacional de Primera Instancia en lo Comercial N°28',
+    'Camara Nacional de Apelaciones en lo Comercial - Sala A',
+    'Camara Nacional de Apelaciones en lo Comercial - Sala B',
+    'Camara Nacional de Apelaciones en lo Comercial - Sala C',
+    'Camara Nacional de Apelaciones en lo Comercial - Sala D',
+    'Camara Nacional de Apelaciones en lo Comercial - Sala E',
+    'Camara Nacional de Apelaciones en lo Comercial - Sala F',
+  ],
+  // ── Laboral (CNAT) ─────────────────────────────────────────────────
+  laboral: [
+    'Juzgado Nacional del Trabajo N°1','Juzgado Nacional del Trabajo N°2','Juzgado Nacional del Trabajo N°3',
+    'Juzgado Nacional del Trabajo N°4','Juzgado Nacional del Trabajo N°5','Juzgado Nacional del Trabajo N°6',
+    'Juzgado Nacional del Trabajo N°7','Juzgado Nacional del Trabajo N°8','Juzgado Nacional del Trabajo N°9',
+    'Juzgado Nacional del Trabajo N°10','Juzgado Nacional del Trabajo N°11','Juzgado Nacional del Trabajo N°12',
+    'Juzgado Nacional del Trabajo N°13','Juzgado Nacional del Trabajo N°14','Juzgado Nacional del Trabajo N°15',
+    'Juzgado Nacional del Trabajo N°16','Juzgado Nacional del Trabajo N°17','Juzgado Nacional del Trabajo N°18',
+    'Juzgado Nacional del Trabajo N°19','Juzgado Nacional del Trabajo N°20','Juzgado Nacional del Trabajo N°21',
+    'Juzgado Nacional del Trabajo N°22','Juzgado Nacional del Trabajo N°23','Juzgado Nacional del Trabajo N°24',
+    'Juzgado Nacional del Trabajo N°25','Juzgado Nacional del Trabajo N°26','Juzgado Nacional del Trabajo N°27',
+    'Juzgado Nacional del Trabajo N°28','Juzgado Nacional del Trabajo N°29','Juzgado Nacional del Trabajo N°30',
+    'Juzgado Nacional del Trabajo N°31','Juzgado Nacional del Trabajo N°32','Juzgado Nacional del Trabajo N°33',
+    'Juzgado Nacional del Trabajo N°34','Juzgado Nacional del Trabajo N°35','Juzgado Nacional del Trabajo N°36',
+    'Juzgado Nacional del Trabajo N°37','Juzgado Nacional del Trabajo N°38','Juzgado Nacional del Trabajo N°39',
+    'Juzgado Nacional del Trabajo N°40','Juzgado Nacional del Trabajo N°41','Juzgado Nacional del Trabajo N°42',
+    'Juzgado Nacional del Trabajo N°43','Juzgado Nacional del Trabajo N°44','Juzgado Nacional del Trabajo N°45',
+    'Juzgado Nacional del Trabajo N°46','Juzgado Nacional del Trabajo N°47','Juzgado Nacional del Trabajo N°48',
+    'Juzgado Nacional del Trabajo N°49','Juzgado Nacional del Trabajo N°50','Juzgado Nacional del Trabajo N°51',
+    'Juzgado Nacional del Trabajo N°52','Juzgado Nacional del Trabajo N°53','Juzgado Nacional del Trabajo N°54',
+    'Juzgado Nacional del Trabajo N°55','Juzgado Nacional del Trabajo N°56','Juzgado Nacional del Trabajo N°57',
+    'Juzgado Nacional del Trabajo N°58','Juzgado Nacional del Trabajo N°59','Juzgado Nacional del Trabajo N°60',
+    'Juzgado Nacional del Trabajo N°61','Juzgado Nacional del Trabajo N°62','Juzgado Nacional del Trabajo N°63',
+    'Juzgado Nacional del Trabajo N°64','Juzgado Nacional del Trabajo N°65','Juzgado Nacional del Trabajo N°66',
+    'Juzgado Nacional del Trabajo N°67','Juzgado Nacional del Trabajo N°68','Juzgado Nacional del Trabajo N°69',
+    'Juzgado Nacional del Trabajo N°70','Juzgado Nacional del Trabajo N°71','Juzgado Nacional del Trabajo N°72',
+    'Juzgado Nacional del Trabajo N°73','Juzgado Nacional del Trabajo N°74','Juzgado Nacional del Trabajo N°75',
+    'Juzgado Nacional del Trabajo N°76','Juzgado Nacional del Trabajo N°77','Juzgado Nacional del Trabajo N°78',
+    'Juzgado Nacional del Trabajo N°79','Juzgado Nacional del Trabajo N°80','Juzgado Nacional del Trabajo N°81',
+    'Juzgado Nacional del Trabajo N°82','Juzgado Nacional del Trabajo N°83','Juzgado Nacional del Trabajo N°84',
+    'Juzgado Nacional del Trabajo N°85','Juzgado Nacional del Trabajo N°86','Juzgado Nacional del Trabajo N°87',
+    'Juzgado Nacional del Trabajo N°88',
+    'Camara Nacional de Apelaciones del Trabajo - Sala I','Camara Nacional de Apelaciones del Trabajo - Sala II',
+    'Camara Nacional de Apelaciones del Trabajo - Sala III','Camara Nacional de Apelaciones del Trabajo - Sala IV',
+    'Camara Nacional de Apelaciones del Trabajo - Sala V','Camara Nacional de Apelaciones del Trabajo - Sala VI',
+    'Camara Nacional de Apelaciones del Trabajo - Sala VII','Camara Nacional de Apelaciones del Trabajo - Sala VIII',
+    'Camara Nacional de Apelaciones del Trabajo - Sala IX','Camara Nacional de Apelaciones del Trabajo - Sala X',
+  ],
+  // ── Familia (PJN) ──────────────────────────────────────────────────
+  // En el PJN la competencia de familia esta distribuida entre juzgados civiles
+  // con competencia especifica y el fuero de familia creado por la ley 26.994
+  familia: [
+    // Juzgados Nacionales de Primera Instancia con competencia en familia (ley 26.994)
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°1',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°2',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°3',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°4',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°5',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°6',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°7',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°8',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°9',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°10',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°11',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°12',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°13',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°14',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°15',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°16',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°17',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°18',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°19',
+    'Juzgado Nacional de Primera Instancia en lo Civil con competencia en Familia N°20',
+    // Camara competente
+    'Camara Nacional de Apelaciones Civil - Sala A (Familia)','Camara Nacional de Apelaciones Civil - Sala B (Familia)',
+    'Camara Nacional de Apelaciones Civil - Sala C (Familia)','Camara Nacional de Apelaciones Civil - Sala D (Familia)',
+    'Camara Nacional de Apelaciones Civil - Sala E (Familia)','Camara Nacional de Apelaciones Civil - Sala F (Familia)',
+    'Camara Nacional de Apelaciones Civil - Sala G (Familia)','Camara Nacional de Apelaciones Civil - Sala H (Familia)',
+    'Camara Nacional de Apelaciones Civil - Sala I (Familia)','Camara Nacional de Apelaciones Civil - Sala J (Familia)',
+    'Camara Nacional de Apelaciones Civil - Sala K (Familia)','Camara Nacional de Apelaciones Civil - Sala L (Familia)',
+    'Camara Nacional de Apelaciones Civil - Sala M (Familia)',
+  ],
+  // ── Penal ──────────────────────────────────────────────────────────
+  penal: [
+    'Juzgado Nacional en lo Criminal y Correccional N°1','Juzgado Nacional en lo Criminal y Correccional N°2',
+    'Juzgado Nacional en lo Criminal y Correccional N°3','Juzgado Nacional en lo Criminal y Correccional N°4',
+    'Juzgado Nacional en lo Criminal y Correccional N°5','Juzgado Nacional en lo Criminal y Correccional N°6',
+    'Juzgado Nacional en lo Criminal y Correccional N°7','Juzgado Nacional en lo Criminal y Correccional N°8',
+    'Juzgado Nacional en lo Criminal y Correccional N°9','Juzgado Nacional en lo Criminal y Correccional N°10',
+    'Juzgado Nacional en lo Criminal y Correccional N°11','Juzgado Nacional en lo Criminal y Correccional N°12',
+    'Juzgado Nacional en lo Criminal y Correccional N°13','Juzgado Nacional en lo Criminal y Correccional N°14',
+    'Juzgado Nacional en lo Criminal y Correccional N°15','Juzgado Nacional en lo Criminal y Correccional N°16',
+    'Juzgado Nacional en lo Criminal y Correccional N°17','Juzgado Nacional en lo Criminal y Correccional N°18',
+    'Juzgado Nacional en lo Criminal y Correccional N°19','Juzgado Nacional en lo Criminal y Correccional N°20',
+    'Juzgado Nacional en lo Criminal y Correccional N°21','Juzgado Nacional en lo Criminal y Correccional N°22',
+    'Juzgado Nacional en lo Criminal y Correccional N°23','Juzgado Nacional en lo Criminal y Correccional N°24',
+    'Juzgado Nacional en lo Criminal y Correccional N°25','Juzgado Nacional en lo Criminal y Correccional N°26',
+    'Juzgado Nacional en lo Criminal y Correccional N°27','Juzgado Nacional en lo Criminal y Correccional N°28',
+    'Juzgado Nacional en lo Criminal y Correccional N°29','Juzgado Nacional en lo Criminal y Correccional N°30',
+    'Camara Nacional de Apelaciones en lo Criminal y Correccional - Sala I',
+    'Camara Nacional de Apelaciones en lo Criminal y Correccional - Sala II',
+    'Camara Nacional de Apelaciones en lo Criminal y Correccional - Sala III',
+    'Camara Nacional de Apelaciones en lo Criminal y Correccional - Sala IV',
+    'Camara Nacional de Apelaciones en lo Criminal y Correccional - Sala V',
+    'Camara Nacional de Apelaciones en lo Criminal y Correccional - Sala VI',
+    'Camara Nacional de Apelaciones en lo Criminal y Correccional - Sala VII',
+  ],
+};
+
+// Cascade functions
+function onJurisdiccionChange(){
+  const jur = document.getElementById('mc-jurisdiccion').value;
+  const fueroSel = document.getElementById('mc-fuero');
+  const locGroup = document.getElementById('mc-localidad-group');
+  const currentFuero = fueroSel.value;
+
+  if(jur === 'PBA'){
+    fueroSel.innerHTML = `
+      <option value="civil">Civil y Comercial</option>
+      <option value="laboral">Laboral</option>
+      <option value="familia">Familia</option>
+      <option value="penal">Penal</option>`;
+    if(locGroup) locGroup.style.display = '';
+  } else {
+    // PJN includes Comercial as a separate fuero
+    fueroSel.innerHTML = `
+      <option value="civil">Civil</option>
+      <option value="comercial">Comercial</option>
+      <option value="laboral">Laboral (CNAT)</option>
+      <option value="familia">Familia</option>
+      <option value="penal">Penal / Correccional</option>`;
+    if(locGroup) locGroup.style.display = 'none';
+  }
+
+  // Try to keep same fuero if it exists in new list, else default to first
+  const opts = Array.from(fueroSel.options).map(o => o.value);
+  fueroSel.value = opts.includes(currentFuero) ? currentFuero : opts[0];
+
+  onFueroChange();
+}
+
+function onFueroChange(){
+  const jur = document.getElementById('mc-jurisdiccion').value;
+  const fuero = document.getElementById('mc-fuero').value;
+  const locSel = document.getElementById('mc-localidad');
+  const juzSel = document.getElementById('mc-juzgado-select');
+
+  if(jur === 'PBA'){
+    // Populate localidades for this fuero
+    const localidades = Object.keys(JUZGADOS_PBA[fuero] || {}).sort((a,b)=>a.localeCompare(b,'es'));
+    locSel.innerHTML = '<option value="">— Seleccioná una localidad —</option>' + localidades.map(l=>`<option value="${l}">${l}</option>`).join('');
+    juzSel.innerHTML = '<option value="">— Primero seleccioná una localidad —</option>';
+  } else {
+    // PJN: no localidad needed, show juzgados directly
+    const juzgados = JUZGADOS_PJN[fuero] || [];
+    juzSel.innerHTML = '<option value="">— Seleccioná un juzgado —</option>' + juzgados.map(j=>`<option value="${j}">${j}</option>`).join('');
+  }
+  document.getElementById('mc-juzgado').value = '';
+}
+
+function onLocalidadChange(){
+  const fuero = document.getElementById('mc-fuero').value;
+  const localidad = document.getElementById('mc-localidad').value;
+  const juzSel = document.getElementById('mc-juzgado-select');
+  if(!localidad){ juzSel.innerHTML = '<option value="">— Primero seleccioná una localidad —</option>'; return; }
+  const juzgados = (JUZGADOS_PBA[fuero] || {})[localidad] || [];
+  juzSel.innerHTML = '<option value="">— Seleccioná un juzgado —</option>' + juzgados.map(j=>`<option value="${j}">${j}</option>`).join('');
+  document.getElementById('mc-juzgado').value = '';
+}
+
+function onJuzgadoSelectChange(){
+  const val = document.getElementById('mc-juzgado-select').value;
+  if(val) document.getElementById('mc-juzgado').value = val;
+}
+
+// Localidades para filtros (todas las que tienen juzgados en PBA)
+const LOCALIDADES_PBA = [...new Set(
+  Object.values(JUZGADOS_PBA).flatMap(fueroObj => Object.keys(fueroObj))
+)].sort((a,b)=>a.localeCompare(b,'es'));
 
 // ══════════════════ STATE ══════════════════
 let accessToken = null;
@@ -1122,13 +1662,9 @@ function causaItemHTML(c){
 }
 
 function populateLocalidadSelects(){
-  const opts = '<option value="">— Sin especificar —</option>' + LOCALIDADES_PBA.map(l=>`<option value="${l}">${l}</option>`).join('');
-  const mc = document.getElementById('mc-localidad');
-  if(mc) mc.innerHTML = opts;
   const fl = document.getElementById('filter-localidad');
   if(fl){
-    // Only show localidades actually used in loaded causas, plus all option
-    const usadas = [...new Set(state.causas.map(c=>c.localidad).filter(Boolean))].sort();
+    const usadas = [...new Set(state.causas.map(c=>c.localidad).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
     fl.innerHTML = '<option value="">Todas las localidades</option>' + usadas.map(l=>`<option value="${l}">${l}</option>`).join('');
   }
 }
@@ -1150,9 +1686,9 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function formatDate(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
 function daysUntil(d){if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(d+'T00:00:00')-t)/86400000);}
 function todayISO(){return new Date().toISOString().split('T')[0];}
-function fueroLabel(f){return{civil:'Civil y Comercial',laboral:'Laboral',familia:'Familia',penal:'Penal'}[f]||f;}
-function fueroClass(f){return{civil:'f-civil',laboral:'f-laboral',familia:'f-familia',penal:'f-penal'}[f]||'';}
-function fueroColor(f){return{civil:'#5a8ae0',laboral:'#5ac8d8',familia:'#a05ae0',penal:'#e05a5a'}[f]||'#666';}
+function fueroLabel(f){return{civil:'Civil y Comercial',comercial:'Comercial (PJN)',laboral:'Laboral',familia:'Familia',penal:'Penal'}[f]||f;}
+function fueroClass(f){return{civil:'f-civil',comercial:'f-civil',laboral:'f-laboral',familia:'f-familia',penal:'f-penal'}[f]||'';}
+function fueroColor(f){return{civil:'#5a8ae0',comercial:'#3a6abf',laboral:'#5ac8d8',familia:'#a05ae0',penal:'#e05a5a'}[f]||'#666';}
 function estadoLabel(e){return{activa:'Activa',en_tramite:'En trámite',suspendida:'Suspendida',archivada:'Archivada'}[e]||e;}
 function formatMoney(n){return'$'+Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 
@@ -1423,13 +1959,23 @@ function editCausa(causaId){
   const c=state.causas.find(x=>x.id===causaId);if(!c)return;
   state.editingCausaId=causaId;
   document.getElementById('modal-causa-title').textContent='Editar Causa';
-  ['caratula','numero','juzgado','actora','demandada','responsable','etapa','notas'].forEach(f=>{document.getElementById('mc-'+f).value=c[f]||'';});
+  ['caratula','numero','actora','demandada','responsable','etapa','notas'].forEach(f=>{document.getElementById('mc-'+f).value=c[f]||'';});
   document.getElementById('mc-jurisdiccion').value=c.jurisdiccion||'PBA';
-  document.getElementById('mc-fuero').value=c.fuero||'civil';
   document.getElementById('mc-urgencia').value=c.urgencia||'media';
   document.getElementById('mc-estado').value=c.estado||'activa';
-  populateLocalidadSelects();
-  document.getElementById('mc-localidad').value=c.localidad||'';
+  // Init cascade (this repopulates fuero options based on jurisdiccion)
+  onJurisdiccionChange();
+  // Now set the correct fuero (after options are populated)
+  document.getElementById('mc-fuero').value=c.fuero||'civil';
+  if(c.localidad) document.getElementById('mc-localidad').value=c.localidad;
+  onLocalidadChange();
+  // Set juzgado - try to match in select, otherwise put in text field
+  const juzSel=document.getElementById('mc-juzgado-select');
+  const juzVal=c.juzgado||'';
+  let found=false;
+  for(let opt of juzSel.options){ if(opt.value===juzVal){opt.selected=true;found=true;break;} }
+  if(!found) juzSel.value='';
+  document.getElementById('mc-juzgado').value=juzVal;
   document.getElementById('modal-causa').classList.add('open');
 }
 
@@ -1926,8 +2472,8 @@ function renderEstadisticas(){
     const chartOpts={responsive:true,plugins:{legend:{labels:{color:'#9a9db5',font:{family:'IBM Plex Sans',size:11}}}}};
 
     // Fuero
-    const fueros=['civil','laboral','familia','penal'];
-    charts['chart-fuero']=new Chart(document.getElementById('chart-fuero'),{type:'doughnut',data:{labels:fueros.map(fueroLabel),datasets:[{data:fueros.map(f=>state.causas.filter(c=>c.fuero===f).length),backgroundColor:['#5a8ae0','#5ac8d8','#a05ae0','#e05a5a'],borderWidth:0}]},options:{...chartOpts,cutout:'65%'}});
+    const fueros=['civil','comercial','laboral','familia','penal'];
+    charts['chart-fuero']=new Chart(document.getElementById('chart-fuero'),{type:'doughnut',data:{labels:fueros.map(fueroLabel),datasets:[{data:fueros.map(f=>state.causas.filter(c=>c.fuero===f).length),backgroundColor:['#5a8ae0','#3a6abf','#5ac8d8','#a05ae0','#e05a5a'],borderWidth:0}]},options:{...chartOpts,cutout:'65%'}});
 
     // Estado
     charts['chart-estado']=new Chart(document.getElementById('chart-estado'),{type:'bar',data:{labels:['Activa','En tramite','Suspendida','Archivada'],datasets:[{data:[activas,enTramite,state.causas.filter(c=>c.estado==='suspendida').length,archivadas],backgroundColor:['#5aae8a','#5a8ae0','#e0935a','#5a5d75'],borderRadius:6,borderWidth:0}]},options:{...chartOpts,scales:{x:{ticks:{color:'#5a5d75'},grid:{display:false}},y:{ticks:{color:'#5a5d75'},grid:{color:'#2e3044'}}},plugins:{...chartOpts.plugins,legend:{display:false}}}});
@@ -1960,13 +2506,13 @@ function updateBadges(){
 function openModalCausa(){
   state.editingCausaId=null;
   document.getElementById('modal-causa-title').textContent='Nueva Causa';
-  ['caratula','numero','juzgado','actora','demandada','responsable','etapa','notas'].forEach(f=>{const el=document.getElementById('mc-'+f);if(el)el.value='';});
+  ['caratula','numero','actora','demandada','responsable','etapa','notas'].forEach(f=>{const el=document.getElementById('mc-'+f);if(el)el.value='';});
+  document.getElementById('mc-juzgado').value='';
   document.getElementById('mc-jurisdiccion').value='PBA';
   document.getElementById('mc-fuero').value='civil';
   document.getElementById('mc-urgencia').value='media';
   document.getElementById('mc-estado').value='activa';
-  populateLocalidadSelects();
-  document.getElementById('mc-localidad').value='';
+  onJurisdiccionChange();
   document.getElementById('modal-causa').classList.add('open');
 }
 function openModalAudiencia(prefill){
