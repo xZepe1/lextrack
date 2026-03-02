@@ -756,79 +756,25 @@ function showLoading(t='Cargando...'){document.getElementById('loading-text').te
 function hideLoading(){document.getElementById('loading-screen').style.display='none';}
 
 // ══════════════════ AUTH ══════════════════
-function generatePKCE(){
-  const array=new Uint8Array(32);
-  crypto.getRandomValues(array);
-  const verifier=btoa(String.fromCharCode(...array)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-  return crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier)).then(hash=>{
-    const challenge=btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-    return{verifier,challenge};
-  });
+function parseHashToken(){
+  const hash = location.hash.substring(1);
+  if(!hash) return null;
+  const params = new URLSearchParams(hash);
+  const token = params.get('access_token');
+  const expiresIn = parseInt(params.get('expires_in') || '3600');
+  if(!token) return null;
+  return { token, expiresIn };
 }
 
-async function startLogin(){
-  const{verifier,challenge}=await generatePKCE();
-  sessionStorage.setItem('pkce_verifier',verifier);
-  sessionStorage.setItem('redirect_origin',location.href.split('?')[0]);
-  const params=new URLSearchParams({
-    client_id:CLIENT_ID,
-    redirect_uri:location.href.split('?')[0],
-    response_type:'code',
-    scope:'openid email profile '+SCOPES,
-    code_challenge:challenge,
-    code_challenge_method:'S256',
-    access_type:'offline',
-    prompt:'select_account',
+function startLogin(){
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: location.href.split('#')[0],
+    response_type: 'token',
+    scope: 'openid email profile ' + SCOPES,
+    prompt: 'select_account',
   });
-  location.href='https://accounts.google.com/o/oauth2/v2/auth?'+params.toString();
-}
-
-async function handleOAuthCallback(){
-  const params=new URLSearchParams(location.search);
-  const code=params.get('code');
-  const error=params.get('error');
-  if(error){toast('Error de autenticacion: '+error,'error');return false;}
-  if(!code)return false;
-
-  // Clean URL without reloading
-  history.replaceState({},'',location.pathname);
-
-  showLoading('Autenticando...');
-  document.getElementById('login-screen').style.display='none';
-
-  const verifier=sessionStorage.getItem('pkce_verifier');
-  if(!verifier){toast('Session expirada. Intentá de nuevo.','error');document.getElementById('login-screen').style.display='flex';hideLoading();return false;}
-
-  // Exchange code for tokens
-  const redirectUri=sessionStorage.getItem('redirect_origin')||location.href.split('?')[0];
-  try{
-    const resp=await fetch('https://oauth2.googleapis.com/token',{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:new URLSearchParams({client_id:CLIENT_ID,code,redirect_uri:redirectUri,grant_type:'authorization_code',code_verifier:verifier}),
-    });
-    const data=await resp.json();
-    if(data.error){toast('Error al obtener token: '+data.error_description,'error');document.getElementById('login-screen').style.display='flex';hideLoading();return false;}
-    accessToken=data.access_token;
-    // Store token expiry
-    sessionStorage.setItem('access_token',accessToken);
-    sessionStorage.setItem('token_expiry',Date.now()+((data.expires_in||3600)*1000));
-
-    // Decode id_token for user info
-    if(data.id_token){
-      const payload=JSON.parse(atob(data.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-      document.getElementById('user-name').textContent=payload.name||payload.email||'Usuario';
-      const av=document.getElementById('user-avatar');
-      if(payload.picture)av.innerHTML=`<img src="${payload.picture}">`;
-      else av.textContent=(payload.name||'?')[0].toUpperCase();
-    }
-    return true;
-  }catch(e){
-    toast('Error de red: '+e.message,'error');
-    document.getElementById('login-screen').style.display='flex';
-    hideLoading();
-    return false;
-  }
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
 
 async function tryRestoreSession(){
@@ -843,38 +789,61 @@ async function tryRestoreSession(){
   return false;
 }
 
-window.addEventListener('load',async()=>{
+window.addEventListener('load', async () => {
   // Render login button
-  document.getElementById('google-btn-container').innerHTML=`
+  document.getElementById('google-btn-container').innerHTML = `
     <button onclick="startLogin()" style="
       display:inline-flex;align-items:center;gap:12px;
       background:#fff;color:#3c4043;border:none;border-radius:4px;
       padding:10px 24px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;
       font-weight:500;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3);
       transition:box-shadow .2s;
-    " onmouseover="this.style.boxShadow='0 2px 6px rgba(0,0,0,.4)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.3)'">
+    " onmouseover="this.style.boxShadow='0 2px 6px rgba(0,0,0,.4)'"
+       onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,.3)'">
       <svg width="18" height="18" viewBox="0 0 48 48">
         <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
         <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
         <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
       </svg>
-      Iniciar sesión con Google
+      Iniciar sesion con Google
     </button>`;
 
-  // Check for OAuth callback
-  if(location.search.includes('code=')){
-    const ok=await handleOAuthCallback();
-    if(ok){
-      await finishLogin();
-      return;
-    }
+  // Check for implicit flow callback (token comes back in URL hash)
+  const hashData = parseHashToken();
+  if(hashData){
+    history.replaceState({}, '', location.pathname);
+    showLoading('Autenticando...');
+    document.getElementById('login-screen').style.display = 'none';
+    accessToken = hashData.token;
+    sessionStorage.setItem('access_token', accessToken);
+    sessionStorage.setItem('token_expiry', String(Date.now() + hashData.expiresIn * 1000));
+    try {
+      const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      }).then(r => r.json());
+      document.getElementById('user-name').textContent = userInfo.name || userInfo.email || 'Usuario';
+      const av = document.getElementById('user-avatar');
+      if(userInfo.picture) av.innerHTML = '<img src="' + userInfo.picture + '">';
+      else av.textContent = (userInfo.name || '?')[0].toUpperCase();
+    } catch(e) {}
+    await finishLogin();
+    return;
   }
 
-  // Try restore session
+  // Try restore existing session
   if(await tryRestoreSession()){
+    document.getElementById('login-screen').style.display = 'none';
     showLoading('Cargando datos...');
-    document.getElementById('login-screen').style.display='none';
+    try {
+      const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      }).then(r => r.json());
+      document.getElementById('user-name').textContent = userInfo.name || userInfo.email || 'Usuario';
+      const av = document.getElementById('user-avatar');
+      if(userInfo.picture) av.innerHTML = '<img src="' + userInfo.picture + '">';
+      else av.textContent = (userInfo.name || '?')[0].toUpperCase();
+    } catch(e) {}
     await finishLogin();
     return;
   }
@@ -895,8 +864,7 @@ async function finishLogin(){
 function signOut(){
   sessionStorage.removeItem('access_token');
   sessionStorage.removeItem('token_expiry');
-  sessionStorage.removeItem('pkce_verifier');
-  accessToken=null;
+  accessToken = null;
   state={causas:[],audiencias:[],alertas:[],tareas:[],cautelares:[],honorarios:[],plantillas:[],currentPage:'dashboard',currentCausaId:null,currentMovimientoCausaId:null,editingCausaId:null,editingTareaId:null,editingCautelarId:null,editingPlantillaId:null,currentPlantillaId:null};
   document.getElementById('sidebar').style.display='none';
   document.getElementById('main').style.display='none';
