@@ -370,6 +370,7 @@ canvas{max-width:100%;}
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">Sincronizado</span>
     </div>
+    <div id="session-timer" style="font-size:10px;color:var(--text3);margin-top:4px;"></div>
   </div>
 </div>
 
@@ -778,10 +779,25 @@ function startLogin(){
 }
 
 async function tryRestoreSession(){
-  const token=sessionStorage.getItem('access_token');
-  const expiry=parseInt(sessionStorage.getItem('token_expiry')||'0');
-  if(token&&Date.now()<expiry-60000){
-    accessToken=token;
+  const token = sessionStorage.getItem('access_token');
+  const expiry = parseInt(sessionStorage.getItem('token_expiry') || '0');
+  // Reject if token missing or expires in less than 5 minutes
+  if(token && expiry && Date.now() < expiry - 300000){
+    accessToken = token;
+    // Schedule auto-logout warning before expiry
+    const msLeft = expiry - Date.now();
+    setTimeout(() => {
+      toast('Tu sesion vence en 5 minutos. Guardá tu trabajo y volvé a iniciar sesion.', 'error');
+    }, Math.max(0, msLeft - 300000));
+    setTimeout(() => {
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('token_expiry');
+      accessToken = null;
+      document.getElementById('sidebar').style.display = 'none';
+      document.getElementById('main').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      toast('Sesion vencida. Por favor volvé a iniciar sesion.', 'error');
+    }, msLeft);
     return true;
   }
   sessionStorage.removeItem('access_token');
@@ -855,10 +871,34 @@ async function finishLogin(){
   showLoading('Cargando datos...');
   await loadAllData();
   hideLoading();
-  document.getElementById('sidebar').style.display='flex';
-  document.getElementById('main').style.display='block';
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('main').style.display = 'block';
   seedDefaultPlantillas();
   renderDashboard(); updateBadges();
+  // Start session timer display
+  startSessionTimer();
+}
+
+function startSessionTimer(){
+  function tick(){
+    const expiry = parseInt(sessionStorage.getItem('token_expiry') || '0');
+    const el = document.getElementById('session-timer');
+    if(!el || !expiry) return;
+    const msLeft = expiry - Date.now();
+    if(msLeft <= 0){ el.textContent = 'Sesion vencida'; el.style.color = 'var(--red)'; return; }
+    const mins = Math.floor(msLeft / 60000);
+    const secs = Math.floor((msLeft % 60000) / 1000);
+    if(mins < 10){
+      el.textContent = `Sesion: ${mins}m ${secs}s`;
+      el.style.color = mins < 5 ? 'var(--red)' : 'var(--orange)';
+    } else {
+      el.textContent = `Sesion: ${mins} min`;
+      el.style.color = 'var(--text3)';
+    }
+    setTimeout(tick, 30000);
+  }
+  tick();
+  setInterval(tick, 30000);
 }
 
 function signOut(){
@@ -872,14 +912,47 @@ function signOut(){
 }
 
 // ══════════════════ SHEETS API ══════════════════
+function checkTokenExpiry(){
+  const expiry = parseInt(sessionStorage.getItem('token_expiry') || '0');
+  if(!accessToken || (expiry && Date.now() > expiry - 60000)){
+    // Token vencido — limpiar sesion y redirigir al login
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('token_expiry');
+    accessToken = null;
+    document.getElementById('sidebar').style.display = 'none';
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    toast('Tu sesion vencio. Por favor volvé a iniciar sesion.', 'error');
+    throw new Error('TOKEN_EXPIRED');
+  }
+}
+
 async function sheetsGet(range){
-  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,{headers:{Authorization:`Bearer ${accessToken}`}});
-  return r.json();
+  checkTokenExpiry();
+  const r = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,
+    {headers:{Authorization:`Bearer ${accessToken}`}}
+  );
+  if(r.status === 401){ checkTokenExpiry(); }
+  const data = await r.json();
+  if(data.error && data.error.code === 401){
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('token_expiry');
+    accessToken = null;
+    document.getElementById('sidebar').style.display = 'none';
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    toast('Tu sesion vencio. Por favor volvé a iniciar sesion.', 'error');
+    throw new Error('TOKEN_EXPIRED');
+  }
+  return data;
 }
 async function sheetsUpdate(range,values){
+  checkTokenExpiry();
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({range,majorDimension:'ROWS',values})});
 }
 async function sheetsClear(range){
+  checkTokenExpiry();
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`}});
 }
 async function ensureSheets(){
@@ -925,7 +998,20 @@ async function loadAllData(){
     setSyncStatus('ok');
   }catch(e){toast('Error al cargar: '+e.message,'error');setSyncStatus('error');}
 }
-async function syncAll(){setSyncStatus('syncing');await loadAllData();renderPage(state.currentPage);updateBadges();toast('Datos sincronizados ✓','success');}
+async function syncAll(){
+  try {
+    setSyncStatus('syncing');
+    await loadAllData();
+    renderPage(state.currentPage);
+    updateBadges();
+    toast('Datos sincronizados ✓', 'success');
+  } catch(e) {
+    if(e.message !== 'TOKEN_EXPIRED'){
+      toast('Error al sincronizar: ' + e.message, 'error');
+      setSyncStatus('error');
+    }
+  }
+}
 
 async function writeCausas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.causas}!A1:O`);await sheetsUpdate(`${TABS.causas}!A1`,[['id','caratula','numero','jurisdiccion','fuero','juzgado','actora','demandada','urgencia','estado','responsable','etapa','notas','movimientos','fechaCreacion'],...state.causas.map(causaToRow)]);setSyncStatus('ok');}catch(e){toast('Error: '+e.message,'error');setSyncStatus('error');}}
 async function writeAudiencias(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.audiencias}!A1:G`);await sheetsUpdate(`${TABS.audiencias}!A1`,[['id','fecha','hora','tipo','descripcion','notas','causaId'],...state.audiencias.map(audToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
