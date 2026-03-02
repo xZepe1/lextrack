@@ -1653,7 +1653,7 @@ function renderEstadisticas(){
     charts['chart-fuero']=new Chart(document.getElementById('chart-fuero'),{type:'doughnut',data:{labels:fueros.map(fueroLabel),datasets:[{data:fueros.map(f=>state.causas.filter(c=>c.fuero===f).length),backgroundColor:['#5a8ae0','#5ac8d8','#a05ae0','#e05a5a'],borderWidth:0}]},options:{...chartOpts,cutout:'65%'}});
 
     // Estado
-    charts['chart-estado']=new Chart(document.getElementById('chart-estado'),{type:'bar',data:{labels:['Activa','En trámite','Suspendida','Archivada'],datasets:[{data:[activas,enTramite,state.causas.filter(c=>c.estado==='suspendida').length,archivadas],backgroundColor:['#5aae8a','#5a8ae0','#e0935a','#5a5d75'],borderRadius:6,borderWidth:0}]},options:{...chartOpts,scales:{x:{ticks:{color:'#5a5d75'},grid:{display:false}},y:{ticks:{color:'#5a5d75'},grid:{color:'#2e3044'}}},plugins:{...chartOpts.plugins,legend:{display:false}}}}});
+    charts['chart-estado']=new Chart(document.getElementById('chart-estado'),{type:'bar',data:{labels:['Activa','En tramite','Suspendida','Archivada'],datasets:[{data:[activas,enTramite,state.causas.filter(c=>c.estado==='suspendida').length,archivadas],backgroundColor:['#5aae8a','#5a8ae0','#e0935a','#5a5d75'],borderRadius:6,borderWidth:0}]},options:{...chartOpts,scales:{x:{ticks:{color:'#5a5d75'},grid:{display:false}},y:{ticks:{color:'#5a5d75'},grid:{color:'#2e3044'}}},plugins:{...chartOpts.plugins,legend:{display:false}}}});
 
     // Jurisdicción
     const pba=state.causas.filter(c=>c.jurisdiccion==='PBA').length;
