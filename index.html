@@ -206,6 +206,7 @@ select.filter-select:focus{outline:none;border-color:var(--gold);}
 .honorario-monto{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;white-space:nowrap;}
 .honorario-monto.ingreso{color:var(--green);}
 .honorario-monto.egreso{color:var(--red);}
+.honorario-monto.pendiente{color:var(--orange);}
 .honorario-content{flex:1;}
 .honorario-concepto{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;}
 .honorario-meta{font-size:11px;color:var(--text3);}
@@ -533,8 +534,19 @@ canvas{max-width:100%;}
   <!-- PLANTILLAS -->
   <div id="page-plantillas" class="page">
     <div class="page-header">
-      <div><div class="page-title">Plantillas de Escritos</div><div class="page-subtitle">Modelos reutilizables con campos de cada causa</div></div>
+      <div><div class="page-title">Plantillas</div><div class="page-subtitle">Escritos, presupuestos, convenios y fichas de entrevista</div></div>
       <button class="btn btn-primary" onclick="openModalPlantilla()">+ Nueva Plantilla</button>
+    </div>
+    <div class="filter-bar" style="margin-bottom:16px">
+      <input type="text" class="filter-select" id="filter-plantilla-q" placeholder="🔍 Buscar plantilla..." oninput="renderPlantillas()" style="flex:1;min-width:180px">
+      <select class="filter-select" id="filter-plantilla-cat" onchange="renderPlantillas()">
+        <option value="">Todas las categorías</option>
+        <option value="escrito">📄 Escritos judiciales</option>
+        <option value="presupuesto">💰 Presupuestos y honorarios</option>
+        <option value="convenio">📋 Convenios y contratos</option>
+        <option value="entrevista">👤 Fichas de entrevista</option>
+        <option value="otro">📁 Otros</option>
+      </select>
     </div>
     <div id="plantillas-list"></div>
   </div>
@@ -593,7 +605,7 @@ canvas{max-width:100%;}
 <!-- AUDIENCIA -->
 <div class="modal-overlay" id="modal-audiencia" onclick="closeModalIfOverlay(event,'modal-audiencia')">
   <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title">Nueva Audiencia / Acto Procesal</div>
+    <div class="modal-title" id="modal-audiencia-title">Nueva Audiencia / Acto Procesal</div>
     <div class="modal-grid">
       <div class="form-group"><label class="form-label">Fecha *</label><input type="date" class="form-input" id="ma-fecha"></div>
       <div class="form-group"><label class="form-label">Hora</label><input type="time" class="form-input" id="ma-hora"></div>
@@ -610,7 +622,7 @@ canvas{max-width:100%;}
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-audiencia')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveAudiencia()">Guardar</button>
+      <button class="btn btn-primary" id="btn-save-audiencia" onclick="saveAudiencia()">Guardar</button>
     </div>
   </div>
 </div>
@@ -661,6 +673,13 @@ canvas{max-width:100%;}
       </div>
       <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="mt-causa"></select></div>
       <div class="form-group span2"><label class="form-label">Descripción / Notas</label><textarea class="form-textarea" id="mt-descripcion" placeholder="Detalle de la tarea..."></textarea></div>
+      <div class="form-group span2"><label class="form-label">Avances / Seguimiento</label><textarea class="form-textarea" id="mt-avances" placeholder="Ir registrando los avances y novedades de esta tarea..." style="min-height:80px"></textarea></div>
+      <div class="form-group span2" id="mt-completada-group" style="display:none">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="mt-completada" style="width:16px;height:16px;cursor:pointer">
+          <span style="font-size:13px;color:var(--text2)">Marcar como completada</span>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-tarea')">Cancelar</button>
@@ -700,15 +719,34 @@ canvas{max-width:100%;}
     <div class="modal-title">Nuevo Registro de Honorarios / Gastos</div>
     <div class="modal-grid">
       <div class="form-group"><label class="form-label">Tipo *</label>
-        <select class="form-select" id="mh-tipo">
+        <select class="form-select" id="mh-tipo" onchange="onHonorarioTipoChange()">
           <option value="ingreso">Ingreso (honorario cobrado)</option>
+          <option value="pendiente">Pendiente de cobro (sentencia firme)</option>
           <option value="egreso">Egreso (gasto / tasa / sellado)</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Monto (ARS) *</label><input type="number" class="form-input" id="mh-monto" placeholder="0.00" min="0"></div>
+      <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="mh-causa"></select></div>
       <div class="form-group span2"><label class="form-label">Concepto *</label><input type="text" class="form-input" id="mh-concepto" placeholder="Ej: Honorarios primera instancia / Tasa de justicia"></div>
       <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="mh-fecha"></div>
-      <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="mh-causa"></select></div>
+      <div class="form-group"><label class="form-label">Unidad de valor</label>
+        <select class="form-select" id="mh-unidad" onchange="onHonorarioUnidadChange()">
+          <option value="ARS">Pesos (ARS)</option>
+          <option value="JUS">Jus arancelario (PBA)</option>
+          <option value="UMA">UMA (PJN)</option>
+        </select>
+      </div>
+      <div class="form-group" id="mh-monto-group"><label class="form-label" id="mh-monto-label">Monto (ARS) *</label><input type="number" class="form-input" id="mh-monto" placeholder="0.00" min="0" oninput="calcEquivalente()"></div>
+      <div class="form-group span2" id="mh-equivalente-group" style="display:none">
+        <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2)">
+          <span id="mh-equivalente-label">Equivalente:</span> <strong id="mh-equivalente-valor">—</strong>
+          <span style="color:var(--text3);margin-left:8px">· Valor referencia editable en <a href="#" onclick="navigate('configuracion');closeModal('modal-honorario')" style="color:var(--accent)">Configuración</a></span>
+        </div>
+      </div>
+      <div class="form-group span2" id="mh-pendiente-info" style="display:none">
+        <div style="background:var(--orange-dim);border:1px solid var(--orange);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2)">
+          📋 Los honorarios pendientes de cobro no se incluyen en el balance. Se muestran como crédito a favor del estudio hasta que se registre el cobro efectivo.
+        </div>
+      </div>
       <div class="form-group span2"><label class="form-label">Notas</label><textarea class="form-textarea" id="mh-notas" placeholder="Observaciones adicionales..."></textarea></div>
     </div>
     <div class="modal-footer">
@@ -724,7 +762,16 @@ canvas{max-width:100%;}
     <div class="modal-title" id="modal-plantilla-title">Nueva Plantilla</div>
     <div class="modal-grid">
       <div class="form-group"><label class="form-label">Nombre de la plantilla *</label><input type="text" class="form-input" id="mpl-nombre" placeholder="Ej: Demanda laboral inicial"></div>
-      <div class="form-group"><label class="form-label">Fuero / Tipo</label>
+      <div class="form-group"><label class="form-label">Categoría *</label>
+        <select class="form-select" id="mpl-categoria">
+          <option value="escrito">📄 Escritos judiciales</option>
+          <option value="presupuesto">💰 Presupuestos y honorarios</option>
+          <option value="convenio">📋 Convenios y contratos</option>
+          <option value="entrevista">👤 Fichas de entrevista</option>
+          <option value="otro">📁 Otros</option>
+        </select>
+      </div>
+      <div class="form-group span2"><label class="form-label">Fuero / Tipo</label>
         <select class="form-select" id="mpl-fuero"><option value="">General</option><option value="civil">Civil y Comercial (PBA)</option><option value="comercial">Comercial (PJN)</option><option value="laboral">Laboral</option><option value="familia">Familia</option><option value="penal">Penal</option></select>
       </div>
       <div class="form-group span2">
@@ -1342,7 +1389,7 @@ let state = {
   causas:[], audiencias:[], alertas:[], tareas:[], cautelares:[], honorarios:[], plantillas:[],
   currentPage:'dashboard', currentCausaId:null, currentMovimientoCausaId:null,
   editingCausaId:null, editingTareaId:null, editingCautelarId:null, editingPlantillaId:null,
-  currentPlantillaId:null,
+  editingAudienciaId:null, currentPlantillaId:null,
 };
 let charts = {};
 
@@ -1575,14 +1622,15 @@ function rowToAud(r){if(!r[0])return null;return{id:r[0],fecha:r[1]||'',hora:r[2
 function audToRow(a){return[a.id,a.fecha,a.hora,a.tipo,a.descripcion,a.notas,a.causaId];}
 function rowToAlerta(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',fecha:r[2]||'',descripcion:r[3]||'',causaId:r[4]||'',cumplida:r[5]==='true'};}
 function alertaToRow(a){return[a.id,a.titulo,a.fecha,a.descripcion,a.causaId,String(a.cumplida||false)];}
-function rowToTarea(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',responsable:r[2]||'',fecha:r[3]||'',prioridad:r[4]||'media',causaId:r[5]||'',descripcion:r[6]||'',completada:r[7]==='true'};}
-function tareaToRow(t){return[t.id,t.titulo,t.responsable,t.fecha,t.prioridad,t.causaId,t.descripcion,String(t.completada||false)];}
+function rowToTarea(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',responsable:r[2]||'',fecha:r[3]||'',prioridad:r[4]||'media',causaId:r[5]||'',descripcion:r[6]||'',completada:r[7]==='true',avances:r[8]||''};}
+function tareaToRow(t){return[t.id,t.titulo,t.responsable,t.fecha,t.prioridad,t.causaId,t.descripcion,String(t.completada||false),t.avances||''];}
+
 function rowToCautelar(r){if(!r[0])return null;return{id:r[0],tipo:r[1]||'',causaId:r[2]||'',descripcion:r[3]||'',fechaTraba:r[4]||'',fechaCaducidad:r[5]||'',notas:r[6]||'',levantada:r[7]==='true'};}
 function cautelarToRow(c){return[c.id,c.tipo,c.causaId,c.descripcion,c.fechaTraba,c.fechaCaducidad,c.notas,String(c.levantada||false)];}
-function rowToHonorario(r){if(!r[0])return null;return{id:r[0],tipo:r[1]||'ingreso',monto:parseFloat(r[2])||0,concepto:r[3]||'',fecha:r[4]||'',causaId:r[5]||'',notas:r[6]||''};}
-function honorarioToRow(h){return[h.id,h.tipo,h.monto,h.concepto,h.fecha,h.causaId,h.notas];}
-function rowToPlantilla(r){if(!r[0])return null;return{id:r[0],nombre:r[1]||'',fuero:r[2]||'',contenido:r[3]||''};}
-function plantillaToRow(p){return[p.id,p.nombre,p.fuero,p.contenido];}
+function rowToHonorario(r){if(!r[0])return null;return{id:r[0],tipo:r[1]||'ingreso',monto:parseFloat(r[2])||0,concepto:r[3]||'',fecha:r[4]||'',causaId:r[5]||'',notas:r[6]||'',unidad:r[7]||'ARS'};}
+function honorarioToRow(h){return[h.id,h.tipo,h.monto,h.concepto,h.fecha,h.causaId,h.notas,h.unidad||'ARS'];}
+function rowToPlantilla(r){if(!r[0])return null;return{id:r[0],nombre:r[1]||'',fuero:r[2]||'',contenido:r[3]||'',categoria:r[4]||'escrito'};}
+function plantillaToRow(p){return[p.id,p.nombre,p.fuero,p.contenido,p.categoria||'escrito'];}
 function safeJSON(s,f){try{return JSON.parse(s||'');}catch{return f;}}
 
 // ══════════════════ LOAD / SAVE ══════════════════
@@ -1590,7 +1638,7 @@ async function loadAllData(){
   try{
     const [rc,ra,ral,rt,rcat,rh,rpl]=await Promise.all([
       sheetsGet(`${TABS.causas}!A2:P`),sheetsGet(`${TABS.audiencias}!A2:G`),sheetsGet(`${TABS.alertas}!A2:F`),
-      sheetsGet(`${TABS.tareas}!A2:H`),sheetsGet(`${TABS.cautelares}!A2:H`),sheetsGet(`${TABS.honorarios}!A2:G`),sheetsGet(`${TABS.plantillas}!A2:D`),
+      sheetsGet(`${TABS.tareas}!A2:I`),sheetsGet(`${TABS.cautelares}!A2:H`),sheetsGet(`${TABS.honorarios}!A2:H`),sheetsGet(`${TABS.plantillas}!A2:E`),
     ]);
     state.causas=(rc.values||[]).map(rowToCausa).filter(Boolean);
     state.audiencias=(ra.values||[]).map(rowToAud).filter(Boolean);
@@ -1620,10 +1668,10 @@ async function syncAll(){
 async function writeCausas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.causas}!A1:P`);await sheetsUpdate(`${TABS.causas}!A1`,[['id','caratula','numero','jurisdiccion','fuero','juzgado','actora','demandada','urgencia','estado','responsable','etapa','notas','movimientos','fechaCreacion','localidad'],...state.causas.map(causaToRow)]);setSyncStatus('ok');}catch(e){toast('Error: '+e.message,'error');setSyncStatus('error');}}
 async function writeAudiencias(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.audiencias}!A1:G`);await sheetsUpdate(`${TABS.audiencias}!A1`,[['id','fecha','hora','tipo','descripcion','notas','causaId'],...state.audiencias.map(audToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 async function writeAlertas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.alertas}!A1:F`);await sheetsUpdate(`${TABS.alertas}!A1`,[['id','titulo','fecha','descripcion','causaId','cumplida'],...state.alertas.map(alertaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
-async function writeTareas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.tareas}!A1:H`);await sheetsUpdate(`${TABS.tareas}!A1`,[['id','titulo','responsable','fecha','prioridad','causaId','descripcion','completada'],...state.tareas.map(tareaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writeTareas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.tareas}!A1:I`);await sheetsUpdate(`${TABS.tareas}!A1`,[['id','titulo','responsable','fecha','prioridad','causaId','descripcion','completada','avances'],...state.tareas.map(tareaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 async function writeCautelares(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.cautelares}!A1:H`);await sheetsUpdate(`${TABS.cautelares}!A1`,[['id','tipo','causaId','descripcion','fechaTraba','fechaCaducidad','notas','levantada'],...state.cautelares.map(cautelarToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
-async function writeHonorarios(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.honorarios}!A1:G`);await sheetsUpdate(`${TABS.honorarios}!A1`,[['id','tipo','monto','concepto','fecha','causaId','notas'],...state.honorarios.map(honorarioToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
-async function writePlantillas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.plantillas}!A1:D`);await sheetsUpdate(`${TABS.plantillas}!A1`,[['id','nombre','fuero','contenido'],...state.plantillas.map(plantillaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writeHonorarios(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.honorarios}!A1:H`);await sheetsUpdate(`${TABS.honorarios}!A1`,[['id','tipo','monto','concepto','fecha','causaId','notas','unidad'],...state.honorarios.map(honorarioToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+async function writePlantillas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.plantillas}!A1:E`);await sheetsUpdate(`${TABS.plantillas}!A1`,[['id','nombre','fuero','contenido','categoria'],...state.plantillas.map(plantillaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 
 // ══════════════════ NAVIGATION ══════════════════
 function navigate(page){
@@ -1731,9 +1779,8 @@ function renderDashboard(){
     ?tareasDash.map(t=>{
         const causa=state.causas.find(c=>c.id===t.causaId);
         const d=daysUntil(t.fecha);
-        return`<div class="tarea-item" style="cursor:default">
-          <div class="tarea-check" onclick="toggleTarea('${t.id}')"></div>
-          <div class="tarea-content">
+        return`<div class="tarea-item" style="cursor:pointer" onclick="editTarea('${t.id}')">
+          <div class="tarea-content" style="flex:1">
             <div class="tarea-titulo">${t.titulo}</div>
             <div class="tarea-meta">
               <span class="tarea-prioridad tp-alta">alta</span>
@@ -1741,7 +1788,9 @@ function renderDashboard(){
               ${t.fecha?`<span>📅 ${formatDate(t.fecha)}${d===0?' — HOY':d<0?` — vencida hace ${Math.abs(d)}d`:''}</span>`:''}
               ${causa?`<span>📁 ${causa.caratula.slice(0,30)}...</span>`:''}
             </div>
+            ${t.avances?`<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">↳ ${t.avances.slice(0,60)}${t.avances.length>60?'...':''}</div>`:''}
           </div>
+          <span style="font-size:11px;color:var(--accent);white-space:nowrap">Ver detalle →</span>
         </div>`;
       }).join('')
     :`<div class="card" style="text-align:center;padding:24px;color:var(--text3)"><div style="font-size:24px">✓</div><div style="margin-top:6px;font-size:13px">Sin tareas urgentes</div></div>`;
@@ -1840,6 +1889,7 @@ function showCausa(causaId){
   const honorariosC=state.honorarios.filter(h=>h.causaId===c.id);
   const totalIngresos=honorariosC.filter(h=>h.tipo==='ingreso').reduce((s,h)=>s+h.monto,0);
   const totalEgresos=honorariosC.filter(h=>h.tipo==='egreso').reduce((s,h)=>s+h.monto,0);
+  const totalPendiente=honorariosC.filter(h=>h.tipo==='pendiente').reduce((s,h)=>s+h.monto,0);
 
   document.getElementById('causa-detail-content').innerHTML=`
     <div class="causa-detail-header">
@@ -1918,15 +1968,16 @@ function showCausa(causaId){
 
     <div id="causa-tab-finanzas" style="display:none">
       <div class="balance-card">
-        <div class="balance-item"><div class="balance-label">Ingresos</div><div class="balance-value" style="color:var(--green)">${formatMoney(totalIngresos)}</div></div>
+        <div class="balance-item"><div class="balance-label">Ingresos cobrados</div><div class="balance-value" style="color:var(--green)">${formatMoney(totalIngresos)}</div></div>
         <div class="balance-item"><div class="balance-label">Egresos</div><div class="balance-value" style="color:var(--red)">${formatMoney(totalEgresos)}</div></div>
+        ${totalPendiente>0?`<div class="balance-item"><div class="balance-label">Pendiente cobro</div><div class="balance-value" style="color:var(--orange)">${formatMoney(totalPendiente)}</div></div>`:''}
         <div class="balance-item"><div class="balance-label">Balance</div><div class="balance-value" style="color:${totalIngresos-totalEgresos>=0?'var(--green)':'var(--red)'}">${formatMoney(totalIngresos-totalEgresos)}</div></div>
       </div>
       ${honorariosC.length===0
         ?`<div class="card" style="text-align:center;padding:30px;color:var(--text3)">Sin registros para esta causa</div>`
         :honorariosC.sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(h=>`
           <div class="honorario-item">
-            <div class="honorario-monto ${h.tipo}">${h.tipo==='ingreso'?'+':'-'}${formatMoney(h.monto)}</div>
+            <div class="honorario-monto ${h.tipo}">${(h.tipo==='ingreso'?'+':h.tipo==='pendiente'?'⏳ ':'-')+formatMoney(h.monto)+(h.unidad&&h.unidad!=='ARS'?' ('+h.unidad+')':'')}</div>
             <div class="honorario-content">
               <div class="honorario-concepto">${h.concepto}</div>
               <div class="honorario-meta">${formatDate(h.fecha)}${h.notas?' · '+h.notas:''}</div>
@@ -2063,6 +2114,9 @@ function editTarea(tareaId){
   document.getElementById('mt-fecha').value=t.fecha||'';
   document.getElementById('mt-prioridad').value=t.prioridad||'media';
   document.getElementById('mt-descripcion').value=t.descripcion||'';
+  document.getElementById('mt-avances').value=t.avances||'';
+  document.getElementById('mt-completada').checked=t.completada||false;
+  document.getElementById('mt-completada-group').style.display='';
   populateCausaSelect('mt-causa',t.causaId);
   document.getElementById('modal-tarea').classList.add('open');
 }
@@ -2092,10 +2146,13 @@ function audienciaItemHTML(a,past=false){
     <div class="agenda-content">
       <div class="agenda-tipo">${a.tipo}</div>
       <div class="agenda-desc">${a.descripcion||a.tipo}</div>
-      ${causa?`<div class="agenda-causa-ref">${causa.numero||''} ${causa.caratula}</div>`:''}
+      ${causa?`<div class="agenda-causa-ref">${causa.caratula}${causa.numero?' — Expte. '+causa.numero:''}</div>`:''}
       ${a.notas?`<div style="font-size:11px;color:var(--text3);margin-top:4px">${a.notas}</div>`:''}
     </div>
-    <button class="btn btn-danger btn-sm" onclick="deleteAudiencia('${a.id}')">🗑</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost btn-sm" onclick="editAudiencia('${a.id}')">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteAudiencia('${a.id}')">🗑</button>
+    </div>
   </div>`;
 }
 
@@ -2224,11 +2281,13 @@ function renderHonorarios(){
 
   const ingresos=list.filter(h=>h.tipo==='ingreso').reduce((s,h)=>s+h.monto,0);
   const egresos=list.filter(h=>h.tipo==='egreso').reduce((s,h)=>s+h.monto,0);
+  const pendiente=list.filter(h=>h.tipo==='pendiente').reduce((s,h)=>s+h.monto,0);
 
   document.getElementById('honorarios-balance').innerHTML=`
     <div class="balance-card">
-      <div class="balance-item"><div class="balance-label">Ingresos (vista actual)</div><div class="balance-value" style="color:var(--green)">${formatMoney(ingresos)}</div></div>
-      <div class="balance-item"><div class="balance-label">Egresos (vista actual)</div><div class="balance-value" style="color:var(--red)">${formatMoney(egresos)}</div></div>
+      <div class="balance-item"><div class="balance-label">Ingresos cobrados</div><div class="balance-value" style="color:var(--green)">${formatMoney(ingresos)}</div></div>
+      <div class="balance-item"><div class="balance-label">Egresos</div><div class="balance-value" style="color:var(--red)">${formatMoney(egresos)}</div></div>
+      ${pendiente>0?`<div class="balance-item"><div class="balance-label">Pendiente cobro</div><div class="balance-value" style="color:var(--orange)">${formatMoney(pendiente)}</div></div>`:''}
       <div class="balance-item"><div class="balance-label">Balance</div><div class="balance-value" style="color:${ingresos-egresos>=0?'var(--green)':'var(--red)'}">${formatMoney(ingresos-egresos)}</div></div>
     </div>`;
 
@@ -2237,7 +2296,7 @@ function renderHonorarios(){
   container.innerHTML=list.map(h=>{
     const causa=state.causas.find(c=>c.id===h.causaId);
     return`<div class="honorario-item">
-      <div class="honorario-monto ${h.tipo}">${h.tipo==='ingreso'?'+':'-'}${formatMoney(h.monto)}</div>
+      <div class="honorario-monto ${h.tipo}">${(h.tipo==='ingreso'?'+':h.tipo==='pendiente'?'⏳ ':'-')+formatMoney(h.monto)+(h.unidad&&h.unidad!=='ARS'?' ('+h.unidad+')':'')}</div>
       <div class="honorario-content">
         <div class="honorario-concepto">${h.concepto}</div>
         <div class="honorario-meta">${formatDate(h.fecha)}${causa?' · '+causa.caratula.slice(0,40):''}${h.notas?' · '+h.notas:''}</div>
@@ -2255,25 +2314,58 @@ async function deleteHonorario(id){
 }
 
 // ══════════════════ PLANTILLAS ══════════════════
+const PLANTILLA_CATS = {
+  escrito:     {label:'Escritos judiciales',     icon:'📄'},
+  presupuesto: {label:'Presupuestos y honorarios',icon:'💰'},
+  convenio:    {label:'Convenios y contratos',   icon:'📋'},
+  entrevista:  {label:'Fichas de entrevista',    icon:'👤'},
+  otro:        {label:'Otros',                   icon:'📁'},
+};
+
 function renderPlantillas(){
   const container=document.getElementById('plantillas-list');
-  if(!state.plantillas.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">Sin plantillas</div><div class="empty-sub">Cargá modelos de escritos frecuentes</div></div>`;return;}
-  container.innerHTML=state.plantillas.map(p=>`
-    <div class="plantilla-item">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="plantilla-nombre">${p.nombre}</div>
-          <div class="plantilla-fuero">${p.fuero?fueroLabel(p.fuero):'General'}</div>
+  const filterCat = document.getElementById('filter-plantilla-cat')?.value||'';
+  const filterQ = (document.getElementById('filter-plantilla-q')?.value||'').toLowerCase();
+
+  let list = state.plantillas;
+  if(filterCat) list = list.filter(p=>(p.categoria||'escrito')===filterCat);
+  if(filterQ) list = list.filter(p=>p.nombre.toLowerCase().includes(filterQ)||p.contenido.toLowerCase().includes(filterQ));
+
+  if(!list.length){
+    container.innerHTML=`<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">Sin plantillas${filterCat||filterQ?' en esta categoría':''}</div><div class="empty-sub">Cargá modelos de escritos, presupuestos, convenios o fichas</div></div>`;
+    return;
+  }
+
+  // Group by category
+  const groups = {};
+  list.forEach(p=>{
+    const cat = p.categoria||'escrito';
+    if(!groups[cat]) groups[cat]=[];
+    groups[cat].push(p);
+  });
+
+  container.innerHTML = Object.entries(groups).map(([cat,items])=>{
+    const catInfo = PLANTILLA_CATS[cat]||{label:cat,icon:'📁'};
+    return `
+      <div class="section-title" style="margin-top:20px;margin-bottom:10px">${catInfo.icon} ${catInfo.label}</div>
+      ${items.map(p=>`
+        <div class="plantilla-item">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="plantilla-nombre">${p.nombre}</div>
+              <div class="plantilla-fuero">${p.fuero?fueroLabel(p.fuero):'General'}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn btn-primary btn-sm" onclick="usarPlantilla('${p.id}')">Usar</button>
+              <button class="btn btn-ghost btn-sm" onclick="editPlantilla('${p.id}')">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="deletePlantilla('${p.id}')">🗑</button>
+            </div>
+          </div>
+          <div class="plantilla-preview">${p.contenido.slice(0,200)}${p.contenido.length>200?'...':''}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-primary btn-sm" onclick="usarPlantilla('${p.id}')">Usar</button>
-          <button class="btn btn-ghost btn-sm" onclick="editPlantilla('${p.id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deletePlantilla('${p.id}')">🗑</button>
-        </div>
-      </div>
-      <div class="plantilla-preview">${p.contenido.slice(0,200)}${p.contenido.length>200?'...':''}</div>
-    </div>
-  `).join('');
+      `).join('')}
+    `;
+  }).join('');
 }
 
 function usarPlantilla(plantillaId){
@@ -2289,7 +2381,7 @@ function usarPlantilla(plantillaId){
         <label class="form-label">Causa para completar variables</label>
         <select class="form-select" id="up-causa" onchange="renderPlantillaPreview('${p.id}')">
           <option value="">— Sin causa (mantener variables) —</option>
-          ${state.causas.map(c=>`<option value="${c.id}">${c.numero||'Sin nro'} · ${c.caratula.slice(0,50)}</option>`).join('')}
+          ${state.causas.map(c=>`<option value="${c.id}">${c.caratula.slice(0,50)}${c.numero?' — Expte. '+c.numero:''}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -2337,6 +2429,7 @@ function editPlantilla(plantillaId){
   document.getElementById('modal-plantilla-title').textContent='Editar Plantilla';
   document.getElementById('mpl-nombre').value=p.nombre||'';
   document.getElementById('mpl-fuero').value=p.fuero||'';
+  document.getElementById('mpl-categoria').value=p.categoria||'escrito';
   document.getElementById('mpl-contenido').value=p.contenido||'';
   document.getElementById('modal-plantilla').classList.add('open');
 }
@@ -2350,40 +2443,482 @@ async function deletePlantilla(id){
 function seedDefaultPlantillas(){
   if(state.plantillas.length>0)return;
   const defaults=[
-    {id:uid(),nombre:'Nota encabezado general',fuero:'',contenido:`EXPTE. N°: {numero}
-CARATULA: {caratula}
+    // ── ESCRITOS JUDICIALES ────────────────────────────────────────────
+    {id:uid(),nombre:'Encabezado general de escrito',fuero:'',categoria:'escrito',contenido:`EXPTE. N°: {numero}
+CARÁTULA: {caratula}
 JUZGADO: {juzgado}
 
-Sr. Juez/a:
+Sr./Sra. Juez/a:
 
-{responsable}, abogado/a, en autos "{caratula}", Expte. N° {numero}, a V.S. me presento y respetuosamente digo:
+{responsable}, abogado/a, en autos "{caratula}", Expte. N° {numero}, ante V.S. me presento y respetuosamente digo:
 
-[Desarrollar aquí el contenido del escrito]
+[OBJETO]
 
-Proveer de conformidad
-SERÁ JUSTICIA`},
-    {id:uid(),nombre:'Solicitud de vista de causa',fuero:'civil',contenido:`EXPTE. N°: {numero}
-CARATULA: {caratula}
+[FUNDAMENTO]
+
+[PETITORIO]
+
+Proveer de conformidad.
+SERÁ JUSTICIA.`},
+    {id:uid(),nombre:'Demanda laboral - Modelo inicial',fuero:'laboral',categoria:'escrito',contenido:`EXPTE. N°: {numero}
+CARÁTULA: {caratula}
+TRIBUNAL: {juzgado}
+LOCALIDAD: {localidad}
+
+Sr./Sra. Juez/a:
+
+{responsable}, abogado/a, en nombre y representación de {actora}, con domicilio en [DOMICILIO], en autos "{caratula}", ante V.S. me presento y digo:
+
+I. OBJETO
+Que vengo a interponer formal demanda laboral contra {demandada} por los créditos emergentes de la relación de trabajo que seguidamente se detallan.
+
+II. RELACIÓN LABORAL
+Fecha de ingreso: [FECHA INGRESO]
+Categoría: [CATEGORÍA]
+Remuneración al momento del despido: $ [MONTO]
+Fecha de egreso: [FECHA EGRESO]
+Causa de extinción: [DESPIDO SIN CAUSA / RENUNCIA / ETC]
+
+III. RUBROS RECLAMADOS
+1. Indemnización por antigüedad (Art. 245 LCT): $ [MONTO]
+2. Indemnización sustitutiva de preaviso (Art. 231/232 LCT): $ [MONTO]
+3. Integración mes de despido (Art. 233 LCT): $ [MONTO]
+4. SAC proporcional: $ [MONTO]
+5. Vacaciones proporcionales: $ [MONTO]
+6. [OTROS RUBROS]
+
+TOTAL RECLAMADO: $ [TOTAL] más intereses y costas.
+
+IV. PRUEBA
+[Documental / Testimonial / Pericial contable]
+
+V. DERECHO
+Fundo el presente en los arts. 231, 232, 233, 245 y ccdtes. de la LCT; Ley 25.013; demás normativa aplicable.
+
+VI. PETITORIO
+Por lo expuesto, solicito:
+1. Se me tenga por presentado/a en legal forma.
+2. Se corra traslado de la demanda al demandado por el plazo de ley.
+3. Oportunamente se dicte sentencia haciendo lugar a la demanda.
+
+Proveer de conformidad.
+SERÁ JUSTICIA.`},
+    {id:uid(),nombre:'Expresión de agravios',fuero:'civil',categoria:'escrito',contenido:`EXPTE. N°: {numero}
+CARÁTULA: {caratula}
+EXCMA. CÁMARA: {juzgado}
+
+Excma. Cámara:
+
+{responsable}, abogado/a de {actora}, en autos "{caratula}", Expte. N° {numero}, a V.E. me presento y digo:
+
+I. OBJETO
+Que vengo a expresar agravios contra la sentencia de fecha [FECHA SENTENCIA], obrante a fs. [FOJAS], que [RESOLVIÓ / RECHAZÓ / HIZO LUGAR A].
+
+II. CRÍTICA CONCRETA Y RAZONADA DEL FALLO
+
+1er. Agravio: [PRIMER AGRAVIO]
+[Desarrollo...]
+
+2do. Agravio: [SEGUNDO AGRAVIO]
+[Desarrollo...]
+
+III. PETITORIO
+Por lo expuesto, solicito:
+1. Se tenga por expresados en tiempo y forma los agravios.
+2. Se revoque / modifique la sentencia apelada.
+3. Con costas al apelado.
+
+Proveer de conformidad.
+SERÁ JUSTICIA.`},
+    {id:uid(),nombre:'Solicitud de vista de actuaciones',fuero:'',categoria:'escrito',contenido:`EXPTE. N°: {numero}
+CARÁTULA: {caratula}
 JUZGADO: {juzgado}
 
-Sr. Juez/a:
+Sr./Sra. Juez/a:
 
-{responsable}, letrado/a apoderado/a de la parte {actora}, en autos "{caratula}", Expte. N° {numero}, ante V.S. comparezco y solicito:
+{responsable}, letrado/a de {actora}, en autos "{caratula}", Expte. N° {numero}, solicita:
 
-Se tenga a mi parte por presentada y se ordene la vista de las actuaciones a los efectos de tomar conocimiento del estado procesal del expediente.
+Vista de las actuaciones por el plazo de ley, a los efectos de examinar el estado procesal del expediente.
 
-Proveer de conformidad
-SERÁ JUSTICIA`},
-    {id:uid(),nombre:'Allanamiento a la mediación',fuero:'laboral',contenido:`EXPTE. N°: {numero}
-CARATULA: {caratula}
+Proveer de conformidad.
+SERÁ JUSTICIA.`},
+    {id:uid(),nombre:'Allanamiento a mediación prejudicial',fuero:'laboral',categoria:'escrito',contenido:`EXPTE. N°: {numero}
+CARÁTULA: {caratula}
 
 Señor/a Mediador/a:
 
 {responsable}, en representación de {actora}, en el marco del procedimiento de mediación prejudicial obligatoria en autos "{caratula}", vengo a manifestar:
 
-Que mi mandante se allana a la instancia de mediación y queda a disposición del/la mediador/a para la fijación de la audiencia correspondiente.
+Que mi mandante se allana a la instancia de mediación y queda a disposición del Sr./Sra. mediador/a para la fijación de la audiencia correspondiente, a los efectos de explorar la posibilidad de llegar a un acuerdo.
 
 Sin otro particular, saludo a Ud. atentamente.`},
+    {id:uid(),nombre:'Pedido de desglose',fuero:'',categoria:'escrito',contenido:`EXPTE. N°: {numero}
+CARÁTULA: {caratula}
+JUZGADO: {juzgado}
+
+Sr./Sra. Juez/a:
+
+{responsable}, en autos "{caratula}", Expte. N° {numero}, solicita:
+
+Se ordene el desglose de la documentación acompañada con fecha [FECHA], consistente en [DESCRIPCIÓN DE LA DOCUMENTACIÓN], haciéndose entrega de la misma al suscripto.
+
+Proveer de conformidad.
+SERÁ JUSTICIA.`},
+
+    // ── PRESUPUESTOS Y HONORARIOS ──────────────────────────────────────
+    {id:uid(),nombre:'Presupuesto de honorarios profesionales',fuero:'',categoria:'presupuesto',contenido:`PRESUPUESTO DE HONORARIOS PROFESIONALES
+Fecha: [FECHA]
+Estudio Jurídico: [NOMBRE DEL ESTUDIO]
+
+CLIENTE: {actora}
+ASUNTO: {caratula}
+JUZGADO / FUERO: {juzgado}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DESCRIPCIÓN DE LOS SERVICIOS:
+[Descripción detallada del trabajo a realizar]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HONORARIOS ESTIMADOS:
+
+  Etapa prejudicial / Asesoramiento:    $ [MONTO]
+  Etapa judicial (demanda e instrucción):$ [MONTO]
+  Etapa de prueba:                       $ [MONTO]
+  Alegatos y sentencia:                  $ [MONTO]
+  Ejecución de sentencia:                $ [MONTO]
+
+  TOTAL ESTIMADO:                        $ [TOTAL]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONDICIONES:
+• Anticipo al iniciar:      $ [MONTO ANTICIPO]
+• Cuotas periódicas:        [DESCRIPCIÓN]
+• Éxito / resultado:        [% del monto obtenido]
+
+GASTOS:
+Los gastos judiciales (tasas, sellados, peritos, etc.) son independientes de los honorarios y se facturan a parte.
+
+VALIDEZ: Este presupuesto tiene validez de 30 días.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Firma y sello del profesional`},
+    {id:uid(),nombre:'Liquidación de honorarios (sentencia)',fuero:'',categoria:'presupuesto',contenido:`LIQUIDACIÓN DE HONORARIOS PROFESIONALES
+Expediente N°: {numero}
+Carátula: {caratula}
+Juzgado: {juzgado}
+Responsable: {responsable}
+Fecha: [FECHA]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MONTO DE CONDENA / ACUERDO: $ [MONTO BASE]
+
+HONORARIOS REGULADOS (Art. [X] Ley [X]):
+  Alícuota aplicada:  [X]%
+  Monto:              $ [MONTO HONORARIOS]
+
+EN JUS ARANCELARIOS (PBA):
+  Valor del Jus al [FECHA]: $ [VALOR JUS]
+  Honorarios en Jus:        [CANTIDAD] Jus
+
+EN UMAs (PJN - si aplica):
+  Valor UMA al [FECHA]:     $ [VALOR UMA]
+  Honorarios en UMAs:       [CANTIDAD] UMAs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NOTA: Los honorarios están pendientes de cobro hasta el depósito judicial o pago directo del condenado en costas.`},
+
+    // ── CONVENIOS Y CONTRATOS ──────────────────────────────────────────
+    {id:uid(),nombre:'Contrato de honorarios profesionales',fuero:'',categoria:'convenio',contenido:`CONTRATO DE PRESTACIÓN DE SERVICIOS JURÍDICOS
+Ciudad de [CIUDAD], [DÍA] de [MES] de [AÑO].
+
+PARTES:
+
+PROFESIONAL: [Nombre del Abogado/a], Mat. Prof. N° [MATRÍCULA], con domicilio en [DOMICILIO], en adelante "EL PROFESIONAL".
+
+CLIENTE: {actora}, DNI/CUIT [NÚMERO], con domicilio en [DOMICILIO], en adelante "EL CLIENTE".
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRIMERA — OBJETO
+EL PROFESIONAL se compromete a prestar servicios de asesoramiento y representación jurídica en el siguiente asunto: {caratula}, tramitado por ante {juzgado}.
+
+SEGUNDA — HONORARIOS
+Las partes acuerdan los siguientes honorarios:
+  Anticipo: $ [MONTO]
+  Honorarios periódicos: $ [MONTO] por mes
+  Honorarios de éxito: [X]% del monto obtenido
+
+TERCERA — GASTOS
+Los gastos judiciales (tasas, sellados, oficios, etc.) son a cargo exclusivo del CLIENTE y serán abonados a requerimiento del PROFESIONAL.
+
+CUARTA — OBLIGACIONES DEL CLIENTE
+El CLIENTE se compromete a proveer la documentación e información necesaria, mantener actualizado su domicilio y abonar los honorarios en término.
+
+QUINTA — CONFIDENCIALIDAD
+El PROFESIONAL guardará estricta confidencialidad respecto de los asuntos del CLIENTE en los términos del Código de Ética y la normativa vigente.
+
+SEXTA — RESCISIÓN
+Cualquiera de las partes podrá rescindir el presente con [X] días de preaviso. Los honorarios devengados hasta la fecha de rescisión serán exigibles en su totalidad.
+
+SÉPTIMA — JURISDICCIÓN
+Para cualquier controversia, las partes se someten a la jurisdicción de los Tribunales de [CIUDAD].
+
+En prueba de conformidad, se firman dos ejemplares del mismo tenor y a un solo efecto.
+
+_________________________          _________________________
+    EL PROFESIONAL                        EL CLIENTE`},
+    {id:uid(),nombre:'Acuerdo de mediación / transacción',fuero:'',categoria:'convenio',contenido:`ACUERDO TRANSACCIONAL
+Expediente N°: {numero}
+Carátula: {caratula}
+
+En la ciudad de [CIUDAD], a los [X] días del mes de [MES] de [AÑO], comparecen:
+
+PARTE ACTORA: {actora}, DNI [DNI], representada por el Dr./Dra. [ABOGADO ACTORA].
+PARTE DEMANDADA: {demandada}, representada por el Dr./Dra. [ABOGADO DEMANDADA].
+
+Manifiestan que, a los fines de poner fin al litigio iniciado mediante la causa de referencia, han llegado al siguiente acuerdo:
+
+PRIMERO — PAGO
+{demandada} abonará a {actora} la suma de PESOS [MONTO EN LETRAS] ($ [MONTO EN NÚMEROS]), en concepto de capital, intereses y costas, de la siguiente manera:
+  • [Forma de pago: al contado / cuotas]
+
+SEGUNDO — PLAZO
+El pago se efectuará [DESCRIPCIÓN DEL PLAZO].
+
+TERCERO — DESISTIMIENTO
+Una vez percibido el importe acordado, {actora} desistirá del derecho y de la acción iniciada, sin ulterior reclamo.
+
+CUARTO — HOMOLOGACIÓN
+Las partes solicitan la homologación judicial del presente acuerdo.
+
+Leído y ratificado, firman:
+
+_________________________          _________________________
+     PARTE ACTORA                       PARTE DEMANDADA`},
+
+    // ── FICHAS DE ENTREVISTA ───────────────────────────────────────────
+    {id:uid(),nombre:'Ficha de entrevista inicial con cliente',fuero:'',categoria:'entrevista',contenido:`FICHA DE ENTREVISTA INICIAL
+Fecha: [FECHA]
+Abogado/a a cargo: {responsable}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATOS DEL CLIENTE
+  Nombre completo:      [NOMBRE]
+  DNI / CUIT:           [NÚMERO]
+  Fecha de nacimiento:  [FECHA NAC.]
+  Estado civil:         [ESTADO]
+  Domicilio:            [DOMICILIO]
+  Teléfono:             [TELÉFONO]
+  E-mail:               [EMAIL]
+  Ocupación:            [OCUPACIÓN]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RELATO DEL CASO
+[Descripción del problema jurídico tal como lo relata el cliente]
+
+HECHOS PRINCIPALES:
+1. [Hecho 1]
+2. [Hecho 2]
+3. [Hecho 3]
+
+FECHA EN QUE OCURRIERON LOS HECHOS: [FECHA]
+
+PARTES INVOLUCRADAS:
+  Contraparte:  {demandada}
+  Datos:        [DATOS DE LA CONTRAPARTE]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DOCUMENTACIÓN APORTADA POR EL CLIENTE
+  □ [Documento 1]
+  □ [Documento 2]
+  □ [Documento 3]
+  □ Documentación pendiente: [LISTA]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EVALUACIÓN PRELIMINAR DEL CASO
+  Materia:              [LABORAL / CIVIL / FAMILIA / ETC.]
+  Viabilidad estimada:  [ ] Alta  [ ] Media  [ ] Baja
+  Urgencia:             [ ] Alta  [ ] Media  [ ] Baja
+  Prescripción:         [FECHA LÍMITE / NO APLICA]
+  
+  Observaciones:
+  [Notas del profesional sobre el caso]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ACUERDOS ECONÓMICOS
+  Honorarios acordados: $ [MONTO] / [MODALIDAD]
+  Anticipo recibido:    $ [MONTO]
+  Fecha de pago:        [FECHA]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMOS PASOS
+  □ [Acción 1 — Fecha]
+  □ [Acción 2 — Fecha]
+  □ [Acción 3 — Fecha]
+
+Firma del cliente: _______________________
+Firma del profesional: ___________________`},
+    {id:uid(),nombre:'Ficha de entrevista laboral',fuero:'laboral',categoria:'entrevista',contenido:`FICHA DE ENTREVISTA — CAUSA LABORAL
+Fecha: [FECHA]
+Abogado/a: {responsable}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATOS DEL TRABAJADOR (CLIENTE)
+  Nombre:              [NOMBRE]
+  DNI:                 [DNI]
+  Domicilio:           [DOMICILIO]
+  Teléfono / Email:    [CONTACTO]
+  CUIL:                [CUIL]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATOS DEL EMPLEADOR (CONTRAPARTE)
+  Razón social:        [EMPRESA]
+  CUIT:                [CUIT]
+  Domicilio real:      [DOMICILIO]
+  Domicilio laboral:   [DOMICILIO TRABAJO]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATOS DE LA RELACIÓN LABORAL
+  Fecha de ingreso:    [FECHA]
+  Fecha de egreso:     [FECHA]
+  Antigüedad:          [AÑOS / MESES]
+  Categoría / Puesto:  [CATEGORÍA]
+  Convenio aplicable:  [CCT N° X / ESTATUTO]
+  Jornada laboral:     [HORARIO]
+  Remuneración bruta:  $ [MONTO]
+  Mejor remuneración normal y habitual: $ [MONTO]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CAUSA DE EGRESO
+  [ ] Despido sin causa
+  [ ] Despido indirecto
+  [ ] Renuncia
+  [ ] Mutuo acuerdo (Art. 241 LCT)
+  [ ] Vencimiento de contrato
+  [ ] Otras:
+
+  Relato del egreso:
+  [Descripción detallada]
+
+RUBROS RECLAMADOS (Estimación)
+  □ Indemnización por antigüedad (Art. 245):  $ [MONTO]
+  □ Preaviso (Art. 232):                      $ [MONTO]
+  □ Integración mes despido (Art. 233):        $ [MONTO]
+  □ SAC proporcional:                          $ [MONTO]
+  □ Vacaciones proporcionales:                 $ [MONTO]
+  □ Horas extras:                              $ [MONTO]
+  □ Diferencias salariales:                    $ [MONTO]
+  □ Multa Art. 80 LCT:                         $ [MONTO]
+  □ Multa Ley 24.013:                          $ [MONTO]
+  □ Otros:                                     $ [MONTO]
+  TOTAL ESTIMADO:                              $ [TOTAL]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DOCUMENTACIÓN APORTADA
+  □ Recibos de sueldo ([MES/AÑO] a [MES/AÑO])
+  □ Telegrama de despido / intimación
+  □ Contrato de trabajo
+  □ Alta AFIP (constancia SIPA)
+  □ Formulario F984 (baja)
+  □ Certificado de trabajo (Art. 80 LCT)
+  □ Otros: [DETALLAR]
+
+  Documentación pendiente:
+  [Listar]
+
+OBSERVACIONES:
+[Notas adicionales]
+
+Firma cliente: ______________  Firma abogado/a: ______________`},
+    {id:uid(),nombre:'Ficha de entrevista — Derecho de familia',fuero:'familia',categoria:'entrevista',contenido:`FICHA DE ENTREVISTA — FAMILIA
+Fecha: [FECHA]
+Abogado/a: {responsable}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATOS DEL CLIENTE
+  Nombre:       [NOMBRE]
+  DNI:          [DNI]
+  F. Nac.:      [FECHA]
+  Estado civil: [ESTADO]
+  Domicilio:    [DOMICILIO]
+  Tel. / Email: [CONTACTO]
+
+DATOS DEL CÓNYUGE / EX PAREJA (si aplica)
+  Nombre:       [NOMBRE]
+  DNI:          [DNI]
+  Domicilio:    [DOMICILIO]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TIPO DE CONSULTA
+  [ ] Divorcio
+  [ ] Separación de hecho
+  [ ] Alimentos (hijos / cónyuge)
+  [ ] Régimen de comunicación (visitas)
+  [ ] Tenencia / Cuidado personal
+  [ ] Violencia familiar / VIF
+  [ ] Liquidación de sociedad conyugal / UCH
+  [ ] Adopción
+  [ ] Filiación
+  [ ] Otros: [ESPECIFICAR]
+
+HIJOS EN COMÚN
+  Nombre               DNI         Edad    Con quién vive
+  [Hijo 1]             [DNI]       [EDAD]  [ ] Actor  [ ] Demandado
+  [Hijo 2]             [DNI]       [EDAD]  [ ] Actor  [ ] Demandado
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SITUACIÓN PATRIMONIAL
+  Bienes inmuebles:    [DETALLAR]
+  Vehículos:           [DETALLAR]
+  Cuentas bancarias:   [DETALLAR]
+  Otros bienes:        [DETALLAR]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+INGRESOS
+  Cliente:             $ [MONTO]  (Fuente: [TRABAJO/OTRO])
+  Contraparte:         $ [MONTO]  (Fuente: [TRABAJO/OTRO])
+
+ALIMENTOS (si aplica)
+  Cuota actual:        $ [MONTO]
+  Cuota solicitada:    $ [MONTO]
+  Último pago:         [FECHA]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RELATO DE LA SITUACIÓN:
+[Descripción del problema, antecedentes relevantes]
+
+MEDIDAS URGENTES NECESARIAS:
+  [ ] Exclusión del hogar
+  [ ] Alimentos provisionales
+  [ ] Restricción de acercamiento
+  [ ] Otras: [ESPECIFICAR]
+
+DOCUMENTACIÓN APORTADA:
+  □ Acta de matrimonio / unión convivencial
+  □ Partidas de nacimiento de los hijos
+  □ Recibos de sueldo / constancia de ingresos
+  □ Títulos de propiedad
+  □ Otros: [DETALLAR]
+
+Observaciones: [NOTAS DEL PROFESIONAL]`},
   ];
   state.plantillas=defaults;
   writePlantillas();
@@ -2515,13 +3050,72 @@ function openModalCausa(){
   onJurisdiccionChange();
   document.getElementById('modal-causa').classList.add('open');
 }
+// ── Valores Jus / UMA (editables en configuración) ──────────────────
+let CONFIG = {
+  valorJus: 28000,   // Valor aproximado Jus PBA en ARS (actualizar según resolución vigente)
+  valorUMA: 32000,   // Valor aproximado UMA PJN en ARS (actualizar según resolución CNAT vigente)
+};
+function loadConfig(){
+  const saved = sessionStorage.getItem('lextrack_config');
+  if(saved) try{ CONFIG = {...CONFIG,...JSON.parse(saved)}; }catch(e){}
+}
+function saveConfig(){
+  sessionStorage.setItem('lextrack_config', JSON.stringify(CONFIG));
+}
+
+function onHonorarioTipoChange(){
+  const tipo = document.getElementById('mh-tipo').value;
+  const info = document.getElementById('mh-pendiente-info');
+  if(info) info.style.display = tipo === 'pendiente' ? '' : 'none';
+}
+function onHonorarioUnidadChange(){
+  const unidad = document.getElementById('mh-unidad').value;
+  const lbl = document.getElementById('mh-monto-label');
+  const eqGroup = document.getElementById('mh-equivalente-group');
+  if(lbl) lbl.textContent = unidad === 'JUS' ? 'Cantidad de Jus *' : unidad === 'UMA' ? 'Cantidad de UMAs *' : 'Monto (ARS) *';
+  if(eqGroup) eqGroup.style.display = unidad !== 'ARS' ? '' : 'none';
+  calcEquivalente();
+}
+function calcEquivalente(){
+  const unidad = document.getElementById('mh-unidad')?.value;
+  const monto = parseFloat(document.getElementById('mh-monto')?.value) || 0;
+  const lbl = document.getElementById('mh-equivalente-label');
+  const val = document.getElementById('mh-equivalente-valor');
+  if(!lbl||!val||unidad==='ARS') return;
+  if(unidad === 'JUS'){
+    const ars = monto * CONFIG.valorJus;
+    lbl.textContent = `${monto} Jus × $${CONFIG.valorJus.toLocaleString('es-AR')} =`;
+    val.textContent = `$ ${ars.toLocaleString('es-AR')}`;
+  } else if(unidad === 'UMA'){
+    const ars = monto * CONFIG.valorUMA;
+    lbl.textContent = `${monto} UMAs × $${CONFIG.valorUMA.toLocaleString('es-AR')} =`;
+    val.textContent = `$ ${ars.toLocaleString('es-AR')}`;
+  }
+}
+
 function openModalAudiencia(prefill){
-  document.getElementById('ma-fecha').value=todayISO();
-  document.getElementById('ma-hora').value='';
-  document.getElementById('ma-tipo').value='Audiencia';
-  document.getElementById('ma-descripcion').value='';
-  document.getElementById('ma-notas').value='';
-  populateCausaSelect('ma-causa',prefill);
+  state.editingAudienciaId = null;
+  document.getElementById('modal-audiencia-title').textContent = 'Nueva Audiencia / Acto Procesal';
+  document.getElementById('ma-fecha').value = '';
+  document.getElementById('ma-hora').value = '';
+  document.getElementById('ma-tipo').value = 'Audiencia';
+  document.getElementById('ma-descripcion').value = '';
+  document.getElementById('ma-notas').value = '';
+  document.getElementById('btn-save-audiencia').textContent = 'Guardar';
+  populateCausaSelect('ma-causa', prefill);
+  document.getElementById('modal-audiencia').classList.add('open');
+}
+function editAudiencia(id){
+  const a = state.audiencias.find(x=>x.id===id); if(!a) return;
+  state.editingAudienciaId = id;
+  document.getElementById('modal-audiencia-title').textContent = 'Editar Audiencia';
+  document.getElementById('ma-fecha').value = a.fecha||'';
+  document.getElementById('ma-hora').value = a.hora||'';
+  document.getElementById('ma-tipo').value = a.tipo||'Audiencia';
+  document.getElementById('ma-descripcion').value = a.descripcion||'';
+  document.getElementById('ma-notas').value = a.notas||'';
+  document.getElementById('btn-save-audiencia').textContent = 'Actualizar';
+  populateCausaSelect('ma-causa', a.causaId);
   document.getElementById('modal-audiencia').classList.add('open');
 }
 function openModalAlerta(prefill){
@@ -2546,6 +3140,8 @@ function openModalTarea(tareaId,prefillCausaId){
   document.getElementById('mt-fecha').value='';
   document.getElementById('mt-prioridad').value='media';
   document.getElementById('mt-descripcion').value='';
+  document.getElementById('mt-avances').value='';
+  document.getElementById('mt-completada-group').style.display='none';
   populateCausaSelect('mt-causa',prefillCausaId);
   document.getElementById('modal-tarea').classList.add('open');
 }
@@ -2563,9 +3159,13 @@ function openModalCautelar(prefillCausaId){
 function openModalHonorario(prefillCausaId){
   document.getElementById('mh-tipo').value='ingreso';
   document.getElementById('mh-monto').value='';
+  document.getElementById('mh-unidad').value='ARS';
   document.getElementById('mh-concepto').value='';
   document.getElementById('mh-fecha').value=todayISO();
   document.getElementById('mh-notas').value='';
+  document.getElementById('mh-pendiente-info').style.display='none';
+  document.getElementById('mh-equivalente-group').style.display='none';
+  document.getElementById('mh-monto-label').textContent='Monto (ARS) *';
   populateCausaSelect('mh-causa',prefillCausaId);
   document.getElementById('modal-honorario').classList.add('open');
 }
@@ -2574,12 +3174,16 @@ function openModalPlantilla(){
   document.getElementById('modal-plantilla-title').textContent='Nueva Plantilla';
   document.getElementById('mpl-nombre').value='';
   document.getElementById('mpl-fuero').value='';
+  document.getElementById('mpl-categoria').value='escrito';
   document.getElementById('mpl-contenido').value='';
   document.getElementById('modal-plantilla').classList.add('open');
 }
 function populateCausaSelect(selectId,prefill){
   const sel=document.getElementById(selectId);if(!sel)return;
-  sel.innerHTML='<option value="">— Sin causa vinculada —</option>'+state.causas.map(c=>`<option value="${c.id}" ${c.id===prefill?'selected':''}>${c.numero||'Sin nro'} · ${c.caratula.slice(0,50)}</option>`).join('');
+  sel.innerHTML='<option value="">— Sin causa vinculada —</option>'+state.causas.map(c=>{
+    const label = c.caratula.slice(0,50) + (c.numero ? ` — Expte. ${c.numero}` : '');
+    return `<option value="${c.id}" ${c.id===prefill?'selected':''}>${label}</option>`;
+  }).join('');
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function closeModalIfOverlay(e,id){if(e.target===e.currentTarget)closeModal(id);}
@@ -2604,9 +3208,20 @@ async function saveCausa(){
 
 async function saveAudiencia(){
   const fecha=document.getElementById('ma-fecha').value;if(!fecha){alert('La fecha es obligatoria.');return;}
-  state.audiencias.push({id:uid(),fecha,hora:document.getElementById('ma-hora').value,tipo:document.getElementById('ma-tipo').value,descripcion:document.getElementById('ma-descripcion').value.trim(),notas:document.getElementById('ma-notas').value.trim(),causaId:document.getElementById('ma-causa').value});
-  await writeAudiencias();closeModal('modal-audiencia');toast('Audiencia guardada ✓','success');
-  if(state.currentPage==='agenda')renderAgenda();else renderDashboard();
+  const btn=document.getElementById('btn-save-audiencia');btn.disabled=true;
+  try{
+    const data={fecha,hora:document.getElementById('ma-hora').value,tipo:document.getElementById('ma-tipo').value,descripcion:document.getElementById('ma-descripcion').value.trim(),notas:document.getElementById('ma-notas').value.trim(),causaId:document.getElementById('ma-causa').value};
+    if(state.editingAudienciaId){
+      const a=state.audiencias.find(x=>x.id===state.editingAudienciaId);
+      if(a){Object.assign(a,data);}
+      toast('Audiencia actualizada ✓','success');
+    } else {
+      state.audiencias.push({id:uid(),...data});
+      toast('Audiencia guardada ✓','success');
+    }
+    await writeAudiencias();closeModal('modal-audiencia');
+    if(state.currentPage==='agenda')renderAgenda();else renderDashboard();
+  } finally {btn.disabled=false;}
 }
 
 async function saveAlerta(){
@@ -2632,10 +3247,10 @@ async function saveTarea(){
   try{
     if(state.editingTareaId){
       const t=state.tareas.find(x=>x.id===state.editingTareaId);
-      if(t){t.titulo=titulo;t.responsable=responsable;t.fecha=document.getElementById('mt-fecha').value;t.prioridad=document.getElementById('mt-prioridad').value;t.causaId=document.getElementById('mt-causa').value;t.descripcion=document.getElementById('mt-descripcion').value.trim();}
+      if(t){t.titulo=titulo;t.responsable=responsable;t.fecha=document.getElementById('mt-fecha').value;t.prioridad=document.getElementById('mt-prioridad').value;t.causaId=document.getElementById('mt-causa').value;t.descripcion=document.getElementById('mt-descripcion').value.trim();t.avances=document.getElementById('mt-avances').value.trim();t.completada=document.getElementById('mt-completada').checked;}
       await writeTareas();closeModal('modal-tarea');toast('Tarea actualizada ✓','success');renderTareas();
     }else{
-      state.tareas.push({id:uid(),titulo,responsable,fecha:document.getElementById('mt-fecha').value,prioridad:document.getElementById('mt-prioridad').value,causaId:document.getElementById('mt-causa').value,descripcion:document.getElementById('mt-descripcion').value.trim(),completada:false});
+      state.tareas.push({id:uid(),titulo,responsable,fecha:document.getElementById('mt-fecha').value,prioridad:document.getElementById('mt-prioridad').value,causaId:document.getElementById('mt-causa').value,descripcion:document.getElementById('mt-descripcion').value.trim(),avances:'',completada:false});
       await writeTareas();closeModal('modal-tarea');toast('Tarea guardada ✓','success');
       if(state.currentPage==='tareas')renderTareas();else renderDashboard();
     }
@@ -2659,7 +3274,7 @@ async function saveCautelar(){
 async function saveHonorario(){
   const monto=parseFloat(document.getElementById('mh-monto').value);const concepto=document.getElementById('mh-concepto').value.trim();
   if(!concepto||!monto){alert('El concepto y el monto son obligatorios.');return;}
-  state.honorarios.push({id:uid(),tipo:document.getElementById('mh-tipo').value,monto,concepto,fecha:document.getElementById('mh-fecha').value,causaId:document.getElementById('mh-causa').value,notas:document.getElementById('mh-notas').value.trim()});
+  state.honorarios.push({id:uid(),tipo:document.getElementById('mh-tipo').value,monto,concepto,fecha:document.getElementById('mh-fecha').value,causaId:document.getElementById('mh-causa').value,notas:document.getElementById('mh-notas').value.trim(),unidad:document.getElementById('mh-unidad').value});
   await writeHonorarios();closeModal('modal-honorario');toast('Registro guardado ✓','success');
   if(state.currentPage==='honorarios')renderHonorarios();
   else if(state.currentCausaId)showCausa(state.currentCausaId);
@@ -2673,9 +3288,9 @@ async function savePlantilla(){
   try{
     if(state.editingPlantillaId){
       const p=state.plantillas.find(x=>x.id===state.editingPlantillaId);
-      if(p){p.nombre=nombre;p.fuero=document.getElementById('mpl-fuero').value;p.contenido=contenido;}
+      if(p){p.nombre=nombre;p.fuero=document.getElementById('mpl-fuero').value;p.categoria=document.getElementById('mpl-categoria').value;p.contenido=contenido;}
     }else{
-      state.plantillas.push({id:uid(),nombre,fuero:document.getElementById('mpl-fuero').value,contenido});
+      state.plantillas.push({id:uid(),nombre,fuero:document.getElementById('mpl-fuero').value,categoria:document.getElementById('mpl-categoria').value,contenido});
     }
     await writePlantillas();closeModal('modal-plantilla');toast('Plantilla guardada ✓','success');renderPlantillas();
   }finally{btn.disabled=false;btn.textContent='Guardar Plantilla';}
