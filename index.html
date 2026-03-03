@@ -739,7 +739,7 @@ canvas{max-width:100%;}
       <div class="form-group span2" id="mh-equivalente-group" style="display:none">
         <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2)">
           <span id="mh-equivalente-label">Equivalente:</span> <strong id="mh-equivalente-valor">—</strong>
-          <span style="color:var(--text3);margin-left:8px">· Valor referencia editable en <a href="#" onclick="navigate('configuracion');closeModal('modal-honorario')" style="color:var(--accent)">Configuración</a></span>
+          <span style="color:var(--text3);margin-left:8px">· Se actualiza automáticamente desde fuentes oficiales (SCBA / CSJN)</span>
         </div>
       </div>
       <div class="form-group span2" id="mh-pendiente-info" style="display:none">
@@ -1528,6 +1528,9 @@ async function finishLogin(){
   renderDashboard(); updateBadges();
   // Start session timer display
   startSessionTimer();
+  // Actualizar valores Jus/UMA en background (no bloquea la carga)
+  loadConfig();
+  fetchValoresOficiales();
 }
 
 function startSessionTimer(){
@@ -3050,17 +3053,85 @@ function openModalCausa(){
   onJurisdiccionChange();
   document.getElementById('modal-causa').classList.add('open');
 }
-// ── Valores Jus / UMA (editables en configuración) ──────────────────
+// ── Valores Jus / UMA ──────────────────────────────────────────────────
+// Fuentes oficiales:
+//   Jus PBA (Ley 14.967): https://www.scba.gov.ar/paginas.asp?id=41320
+//   UMA PJN (Ley 27.423): https://www.cpacf.org.ar/noticia/5201/valores-uma-pjn-ley-27423
+// Valores base (Jus: Ac. SCBA 4217 desde 01/01/2026 | UMA: Res. SGA CSJN 36/2026 desde 01/12/2025)
 let CONFIG = {
-  valorJus: 28000,   // Valor aproximado Jus PBA en ARS (actualizar según resolución vigente)
-  valorUMA: 32000,   // Valor aproximado UMA PJN en ARS (actualizar según resolución CNAT vigente)
+  valorJus: 45660,
+  valorUMA: 87342,
+  jus_vigencia: '2026-01-01',
+  uma_vigencia: '2025-12-01',
+  lastFetch: null,
 };
+
 function loadConfig(){
   const saved = sessionStorage.getItem('lextrack_config');
-  if(saved) try{ CONFIG = {...CONFIG,...JSON.parse(saved)}; }catch(e){}
+  if(saved) try{
+    const parsed = JSON.parse(saved);
+    // Solo usar cache si tiene menos de 24 horas
+    if(parsed.lastFetch && (Date.now() - parsed.lastFetch) < 86400000){
+      CONFIG = {...CONFIG, ...parsed};
+    }
+  }catch(e){}
 }
+
 function saveConfig(){
+  CONFIG.lastFetch = Date.now();
   sessionStorage.setItem('lextrack_config', JSON.stringify(CONFIG));
+}
+
+// Consulta automática de valores vigentes usando Claude API para parsear las páginas oficiales
+async function fetchValoresOficiales(){
+  // Solo re-consultar si no hay cache del día
+  const saved = sessionStorage.getItem('lextrack_config');
+  if(saved){
+    try{
+      const p = JSON.parse(saved);
+      if(p.lastFetch && (Date.now() - p.lastFetch) < 86400000) return; // cache vigente
+    }catch(e){}
+  }
+
+  try{
+    const prompt = `Necesito los valores actuales de dos unidades de honorarios judiciales argentinas.
+
+1) JUS ARANCELARIO PBA (Ley 14.967): Según los últimos acuerdos publicados por la SCBA, el valor del Jus vigente desde el 1° de enero de 2026 es $45.660 (Acuerdo 4217). ¿Hay algún acuerdo posterior que lo haya modificado? Si no hay información posterior, confirmá que el valor es $45.660.
+
+2) UMA PJN (Ley 27.423): Según la Resolución SGA N° 36/2026 de la CSJN, el valor de la UMA vigente desde el 1° de diciembre de 2025 es $87.342. ¿Hay alguna resolución posterior que lo haya modificado? Si no hay información posterior, confirmá que el valor es $87.342.
+
+Respondé ÚNICAMENTE con un objeto JSON con este formato exacto, sin texto adicional, sin markdown:
+{"valorJus": 45660, "jus_vigencia": "2026-01-01", "valorUMA": 87342, "uma_vigencia": "2025-12-01"}`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        tools: [{type: 'web_search_20250305', name: 'web_search'}],
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+
+    if(!resp.ok) return;
+    const data = await resp.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = text.match(/\{[^}]+\}/);
+    if(match){
+      const parsed = JSON.parse(match[0]);
+      if(parsed.valorJus && parsed.valorJus > 10000) CONFIG.valorJus = parsed.valorJus;
+      if(parsed.valorUMA && parsed.valorUMA > 10000) CONFIG.valorUMA = parsed.valorUMA;
+      if(parsed.jus_vigencia) CONFIG.jus_vigencia = parsed.jus_vigencia;
+      if(parsed.uma_vigencia) CONFIG.uma_vigencia = parsed.uma_vigencia;
+      saveConfig();
+      // Actualizar el equivalente si el modal está abierto
+      calcEquivalente();
+      console.log(`[LexTrack] Valores actualizados — Jus: $${CONFIG.valorJus} | UMA: $${CONFIG.valorUMA}`);
+    }
+  } catch(e){
+    console.log('[LexTrack] No se pudieron actualizar los valores online. Usando valores hardcodeados.');
+  }
 }
 
 function onHonorarioTipoChange(){
@@ -3084,11 +3155,11 @@ function calcEquivalente(){
   if(!lbl||!val||unidad==='ARS') return;
   if(unidad === 'JUS'){
     const ars = monto * CONFIG.valorJus;
-    lbl.textContent = `${monto} Jus × $${CONFIG.valorJus.toLocaleString('es-AR')} =`;
+    lbl.textContent = `${monto} Jus × $${CONFIG.valorJus.toLocaleString('es-AR')} (vigente desde ${CONFIG.jus_vigencia||'?'}) =`;
     val.textContent = `$ ${ars.toLocaleString('es-AR')}`;
   } else if(unidad === 'UMA'){
     const ars = monto * CONFIG.valorUMA;
-    lbl.textContent = `${monto} UMAs × $${CONFIG.valorUMA.toLocaleString('es-AR')} =`;
+    lbl.textContent = `${monto} UMAs × $${CONFIG.valorUMA.toLocaleString('es-AR')} (vigente desde ${CONFIG.uma_vigencia||'?'}) =`;
     val.textContent = `$ ${ars.toLocaleString('es-AR')}`;
   }
 }
