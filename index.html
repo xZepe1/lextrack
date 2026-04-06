@@ -200,6 +200,17 @@ select.filter-select:focus{outline:none;border-color:var(--gold);}
 .tp-alta{background:var(--red-dim);color:var(--red);}
 .tp-media{background:var(--orange-dim);color:var(--orange);}
 .tp-baja{background:var(--green-dim);color:var(--green);}
+/* SEGUIMIENTO LOG */
+.seg-entry{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:7px;}
+.seg-entry:last-child{margin-bottom:0;}
+.seg-entry-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px;flex-wrap:wrap;}
+.seg-entry-autor{font-size:11.5px;font-weight:600;color:var(--accent);}
+.seg-entry-ts{font-size:11px;color:var(--text3);}
+.seg-entry-texto{font-size:13px;color:var(--text);line-height:1.55;white-space:pre-wrap;}
+.seg-entry-migrado{border-style:dashed;border-color:var(--border2);}
+.seg-migrado-badge{font-size:10px;background:var(--surface3);color:var(--text3);padding:1px 6px;border-radius:8px;margin-left:4px;}
+.seg-del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:2px 5px;border-radius:4px;line-height:1;}
+.seg-del-btn:hover{background:var(--red-dim);color:var(--red);}
 
 /* HONORARIOS */
 .honorario-item{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;align-items:center;}
@@ -673,7 +684,6 @@ canvas{max-width:100%;}
       </div>
       <div class="form-group"><label class="form-label">Causa vinculada</label><select class="form-select" id="mt-causa"></select></div>
       <div class="form-group span2"><label class="form-label">Descripción / Notas</label><textarea class="form-textarea" id="mt-descripcion" placeholder="Detalle de la tarea..."></textarea></div>
-      <div class="form-group span2"><label class="form-label">Avances / Seguimiento</label><textarea class="form-textarea" id="mt-avances" placeholder="Ir registrando los avances y novedades de esta tarea..." style="min-height:80px"></textarea></div>
       <div class="form-group span2" id="mt-completada-group" style="display:none">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <input type="checkbox" id="mt-completada" style="width:16px;height:16px;cursor:pointer">
@@ -681,7 +691,25 @@ canvas{max-width:100%;}
         </label>
       </div>
     </div>
-    <div class="modal-footer">
+
+    <!-- LOG DE SEGUIMIENTO — solo visible al editar -->
+    <div id="mt-seguimiento-section" style="display:none;margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">📋 Seguimiento de avances</div>
+
+      <!-- Nueva entrada -->
+      <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+        <textarea class="form-textarea" id="mt-nueva-entrada" placeholder="Describí el avance, acción realizada, novedad del expediente..." style="min-height:70px;margin-bottom:8px;font-size:13px"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--text3)">👤 <span id="mt-entrada-autor-label" style="font-weight:500"></span> · 🕐 fecha y hora automática</span>
+          <button class="btn btn-primary btn-sm" onclick="agregarEntradaSeguimiento()" id="btn-agregar-entrada">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Historial -->
+      <div id="mt-log-container" style="max-height:320px;overflow-y:auto"></div>
+    </div>
+
+    <div class="modal-footer" style="margin-top:16px">
       <button class="btn btn-ghost" onclick="closeModal('modal-tarea')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-tarea" onclick="saveTarea()">Guardar Tarea</button>
     </div>
@@ -1385,6 +1413,7 @@ const LOCALIDADES_PBA = [...new Set(
 
 // ══════════════════ STATE ══════════════════
 let accessToken = null;
+let currentUser = { email: '', name: '' };  // se llena al hacer login
 let state = {
   causas:[], audiencias:[], alertas:[], tareas:[], cautelares:[], honorarios:[], plantillas:[],
   currentPage:'dashboard', currentCausaId:null, currentMovimientoCausaId:null,
@@ -1489,10 +1518,11 @@ window.addEventListener('load', async () => {
       const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + accessToken }
       }).then(r => r.json());
-      document.getElementById('user-name').textContent = userInfo.name || userInfo.email || 'Usuario';
+      currentUser = { email: userInfo.email || '', name: userInfo.name || userInfo.email || 'Usuario' };
+      document.getElementById('user-name').textContent = currentUser.name;
       const av = document.getElementById('user-avatar');
       if(userInfo.picture) av.innerHTML = '<img src="' + userInfo.picture + '">';
-      else av.textContent = (userInfo.name || '?')[0].toUpperCase();
+      else av.textContent = (currentUser.name || '?')[0].toUpperCase();
     } catch(e) {}
     await finishLogin();
     return;
@@ -1506,10 +1536,11 @@ window.addEventListener('load', async () => {
       const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + accessToken }
       }).then(r => r.json());
-      document.getElementById('user-name').textContent = userInfo.name || userInfo.email || 'Usuario';
+      currentUser = { email: userInfo.email || '', name: userInfo.name || userInfo.email || 'Usuario' };
+      document.getElementById('user-name').textContent = currentUser.name;
       const av = document.getElementById('user-avatar');
       if(userInfo.picture) av.innerHTML = '<img src="' + userInfo.picture + '">';
-      else av.textContent = (userInfo.name || '?')[0].toUpperCase();
+      else av.textContent = (currentUser.name || '?')[0].toUpperCase();
     } catch(e) {}
     await finishLogin();
     return;
@@ -1625,8 +1656,14 @@ function rowToAud(r){if(!r[0])return null;return{id:r[0],fecha:r[1]||'',hora:r[2
 function audToRow(a){return[a.id,a.fecha,a.hora,a.tipo,a.descripcion,a.notas,a.causaId];}
 function rowToAlerta(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',fecha:r[2]||'',descripcion:r[3]||'',causaId:r[4]||'',cumplida:r[5]==='true'};}
 function alertaToRow(a){return[a.id,a.titulo,a.fecha,a.descripcion,a.causaId,String(a.cumplida||false)];}
-function rowToTarea(r){if(!r[0])return null;return{id:r[0],titulo:r[1]||'',responsable:r[2]||'',fecha:r[3]||'',prioridad:r[4]||'media',causaId:r[5]||'',descripcion:r[6]||'',completada:r[7]==='true',avances:r[8]||''};}
-function tareaToRow(t){return[t.id,t.titulo,t.responsable,t.fecha,t.prioridad,t.causaId,t.descripcion,String(t.completada||false),t.avances||''];}
+function rowToTarea(r){
+  if(!r[0])return null;
+  let avances=[];
+  const raw=r[8]||'';
+  if(raw){try{const p=JSON.parse(raw);if(Array.isArray(p))avances=p;}catch(e){if(raw.trim())avances=[{ts:(r[3]||'2024-01-01')+'T12:00:00',autor:r[2]||'',texto:raw.trim(),migrado:true}];}}
+  return{id:r[0],titulo:r[1]||'',responsable:r[2]||'',fecha:r[3]||'',prioridad:r[4]||'media',causaId:r[5]||'',descripcion:r[6]||'',completada:r[7]==='true',avances};
+}
+function tareaToRow(t){return[t.id,t.titulo,t.responsable,t.fecha,t.prioridad,t.causaId,t.descripcion,String(t.completada||false),JSON.stringify(t.avances||[])];}
 
 function rowToCautelar(r){if(!r[0])return null;return{id:r[0],tipo:r[1]||'',causaId:r[2]||'',descripcion:r[3]||'',fechaTraba:r[4]||'',fechaCaducidad:r[5]||'',notas:r[6]||'',levantada:r[7]==='true'};}
 function cautelarToRow(c){return[c.id,c.tipo,c.causaId,c.descripcion,c.fechaTraba,c.fechaCaducidad,c.notas,String(c.levantada||false)];}
@@ -1791,7 +1828,7 @@ function renderDashboard(){
               ${t.fecha?`<span>📅 ${formatDate(t.fecha)}${d===0?' — HOY':d<0?` — vencida hace ${Math.abs(d)}d`:''}</span>`:''}
               ${causa?`<span>📁 ${causa.caratula.slice(0,30)}...</span>`:''}
             </div>
-            ${t.avances?`<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">↳ ${t.avances.slice(0,60)}${t.avances.length>60?'...':''}</div>`:''}
+            ${(()=>{const avs=Array.isArray(t.avances)?t.avances:[];if(!avs.length)return'';const ult=avs[avs.length-1];return`<div style="font-size:11px;color:var(--text3);margin-top:5px;font-style:italic">↳ <strong style="font-style:normal">${ult.autor||''}${ult.autor?': ':''}</strong>${ult.texto.slice(0,70)}${ult.texto.length>70?'...':''} <span style="opacity:.6">(${avs.length} entrada${avs.length!==1?'s':''})</span></div>`;})()}
           </div>
           <span style="font-size:11px;color:var(--accent);white-space:nowrap">Ver detalle →</span>
         </div>`;
@@ -1948,7 +1985,7 @@ function showCausa(causaId){
     <div id="causa-tab-tareas" style="display:none">
       ${tareasC.length===0
         ?`<div class="card" style="text-align:center;padding:30px;color:var(--text3)">Sin tareas para esta causa</div>`
-        :tareasC.map(t=>`<div class="tarea-item ${t.completada?'completada':''}">
+        :tareasC.map(t=>{const nAvs=Array.isArray(t.avances)?t.avances.length:0;return`<div class="tarea-item ${t.completada?'completada':''}">
             <div class="tarea-check ${t.completada?'done':''}" onclick="toggleTarea('${t.id}')">✓</div>
             <div class="tarea-content">
               <div class="tarea-titulo">${t.titulo}</div>
@@ -1956,11 +1993,15 @@ function showCausa(causaId){
                 <span class="tarea-prioridad tp-${t.prioridad}">${t.prioridad}</span>
                 ${t.responsable?`<span>👤 ${t.responsable}</span>`:''}
                 ${t.fecha?`<span>📅 ${formatDate(t.fecha)}</span>`:''}
+                ${nAvs>0?`<span style="color:var(--accent)">📋 ${nAvs} entrada${nAvs!==1?'s':''}</span>`:''}
               </div>
               ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:6px">${t.descripcion}</div>`:''}
             </div>
-            <button class="btn btn-danger btn-sm" onclick="deleteTarea('${t.id}')">🗑</button>
-          </div>`).join('')}
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn btn-ghost btn-sm" onclick="editTarea('${t.id}')">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTarea('${t.id}')">🗑</button>
+            </div>
+          </div>`;}).join('')}
     </div>
 
     <div id="causa-tab-cautelares" style="display:none">
@@ -2070,6 +2111,9 @@ function renderTareas(){
     const causa=state.causas.find(c=>c.id===t.causaId);
     const d=daysUntil(t.fecha);
     const vencida=!t.completada&&d!==null&&d<0;
+    const avances=Array.isArray(t.avances)?t.avances:[];
+    const nAvs=avances.length;
+    const ultEntrada=nAvs>0?avances[nAvs-1]:null;
     return`<div class="tarea-item ${t.completada?'completada':''}">
       <div class="tarea-check ${t.completada?'done':''}" onclick="toggleTarea('${t.id}')">✓</div>
       <div class="tarea-content">
@@ -2079,11 +2123,15 @@ function renderTareas(){
           ${t.responsable?`<span>👤 ${t.responsable}</span>`:''}
           ${t.fecha?`<span style="color:${vencida?'var(--red)':'inherit'}">📅 ${formatDate(t.fecha)}${d===0?' — HOY':vencida?` — vencida hace ${Math.abs(d)}d`:''}</span>`:''}
           ${causa?`<span>📁 ${causa.caratula.slice(0,35)}${causa.caratula.length>35?'...':''}</span>`:''}
+          ${nAvs>0?`<span style="color:var(--accent)">📋 ${nAvs} entrada${nAvs!==1?'s':''}</span>`:''}
         </div>
-        ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:6px">${t.descripcion}</div>`:''}
+        ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:5px">${t.descripcion}</div>`:''}
+        ${ultEntrada?`<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">
+          ↳ <strong style="font-style:normal;color:var(--text2)">${ultEntrada.autor}</strong>: ${ultEntrada.texto.slice(0,80)}${ultEntrada.texto.length>80?'...':''}
+        </div>`:''}
       </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-ghost btn-sm" onclick="editTarea('${t.id}')">✏️</button>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="editTarea('${t.id}')" title="Editar / ver seguimiento">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="deleteTarea('${t.id}')">🗑</button>
       </div>
     </div>`;
@@ -2117,12 +2165,79 @@ function editTarea(tareaId){
   document.getElementById('mt-fecha').value=t.fecha||'';
   document.getElementById('mt-prioridad').value=t.prioridad||'media';
   document.getElementById('mt-descripcion').value=t.descripcion||'';
-  document.getElementById('mt-avances').value=t.avances||'';
   document.getElementById('mt-completada').checked=t.completada||false;
   document.getElementById('mt-completada-group').style.display='';
+  // Mostrar sección de seguimiento
+  document.getElementById('mt-seguimiento-section').style.display='';
+  document.getElementById('mt-nueva-entrada').value='';
+  document.getElementById('mt-entrada-autor-label').textContent=t.responsable||'Responsable';
+  renderLogSeguimiento(t);
   populateCausaSelect('mt-causa',t.causaId);
   document.getElementById('modal-tarea').classList.add('open');
 }
+
+function renderLogSeguimiento(t){
+  const container=document.getElementById('mt-log-container');
+  const entradas=(t.avances||[]).slice().reverse(); // más reciente primero
+  if(!entradas.length){
+    container.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">
+      Sin entradas aún — usá el campo de arriba para registrar el primer avance.</div>`;
+    return;
+  }
+  container.innerHTML=entradas.map((e,iRev)=>{
+    const iReal=entradas.length-1-iRev; // índice en array original para borrar
+    const fecha=e.ts?new Date(e.ts):null;
+    const fechaStr=fecha?fecha.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+    const horaStr=fecha?fecha.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'';
+    const esMigrado=!!e.migrado;
+    return`<div class="seg-entry${esMigrado?' seg-entry-migrado':''}">
+      <div class="seg-entry-header">
+        <div>
+          <span class="seg-entry-autor">👤 ${e.autor||'Sin autor'}</span>
+          ${esMigrado?'<span class="seg-migrado-badge">entrada importada</span>':''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="seg-entry-ts">📅 ${fechaStr}${horaStr?' · '+horaStr:''}</span>
+          <button class="seg-del-btn" onclick="borrarEntradaLog(${iReal})" title="Eliminar esta entrada">✕</button>
+        </div>
+      </div>
+      <div class="seg-entry-texto">${e.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>`;
+  }).join('');
+}
+
+async function agregarEntradaSeguimiento(){
+  const texto=document.getElementById('mt-nueva-entrada').value.trim();
+  if(!texto){alert('Escribí algo antes de agregar.');return;}
+  const t=state.tareas.find(x=>x.id===state.editingTareaId);if(!t)return;
+  const btn=document.getElementById('btn-agregar-entrada');
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    if(!Array.isArray(t.avances))t.avances=[];
+    // Autor = responsable actual en el campo del formulario (puede haber sido editado)
+    const autorActual=document.getElementById('mt-responsable').value.trim()||t.responsable||'Sin autor';
+    t.avances.push({ts:new Date().toISOString(),autor:autorActual,texto});
+    await writeTareas();
+    document.getElementById('mt-nueva-entrada').value='';
+    renderLogSeguimiento(t);
+    // Actualizar label del autor por si cambió
+    document.getElementById('mt-entrada-autor-label').textContent=autorActual;
+    toast('Entrada agregada ✓','success');
+    // Actualizar preview en dashboard
+    if(state.currentPage==='dashboard')renderDashboard();
+    else if(state.currentPage==='tareas')renderTareas();
+  }finally{btn.disabled=false;btn.textContent='+ Agregar';}
+}
+
+async function borrarEntradaLog(idx){
+  if(!confirm('¿Eliminar esta entrada del historial?'))return;
+  const t=state.tareas.find(x=>x.id===state.editingTareaId);if(!t)return;
+  t.avances.splice(idx,1);
+  await writeTareas();
+  renderLogSeguimiento(t);
+  toast('Entrada eliminada','success');
+}
+
 
 // ══════════════════ AGENDA ══════════════════
 function renderAgenda(){
@@ -3211,8 +3326,9 @@ function openModalTarea(tareaId,prefillCausaId){
   document.getElementById('mt-fecha').value='';
   document.getElementById('mt-prioridad').value='media';
   document.getElementById('mt-descripcion').value='';
-  document.getElementById('mt-avances').value='';
   document.getElementById('mt-completada-group').style.display='none';
+  document.getElementById('mt-seguimiento-section').style.display='none';
+  document.getElementById('mt-log-container').innerHTML='';
   populateCausaSelect('mt-causa',prefillCausaId);
   document.getElementById('modal-tarea').classList.add('open');
 }
@@ -3318,10 +3434,10 @@ async function saveTarea(){
   try{
     if(state.editingTareaId){
       const t=state.tareas.find(x=>x.id===state.editingTareaId);
-      if(t){t.titulo=titulo;t.responsable=responsable;t.fecha=document.getElementById('mt-fecha').value;t.prioridad=document.getElementById('mt-prioridad').value;t.causaId=document.getElementById('mt-causa').value;t.descripcion=document.getElementById('mt-descripcion').value.trim();t.avances=document.getElementById('mt-avances').value.trim();t.completada=document.getElementById('mt-completada').checked;}
+      if(t){t.titulo=titulo;t.responsable=responsable;t.fecha=document.getElementById('mt-fecha').value;t.prioridad=document.getElementById('mt-prioridad').value;t.causaId=document.getElementById('mt-causa').value;t.descripcion=document.getElementById('mt-descripcion').value.trim();/* avances se guarda directamente en agregarEntradaSeguimiento */t.completada=document.getElementById('mt-completada').checked;}
       await writeTareas();closeModal('modal-tarea');toast('Tarea actualizada ✓','success');renderTareas();
     }else{
-      state.tareas.push({id:uid(),titulo,responsable,fecha:document.getElementById('mt-fecha').value,prioridad:document.getElementById('mt-prioridad').value,causaId:document.getElementById('mt-causa').value,descripcion:document.getElementById('mt-descripcion').value.trim(),avances:'',completada:false});
+      state.tareas.push({id:uid(),titulo,responsable,fecha:document.getElementById('mt-fecha').value,prioridad:document.getElementById('mt-prioridad').value,causaId:document.getElementById('mt-causa').value,descripcion:document.getElementById('mt-descripcion').value.trim(),avances:[],completada:false});
       await writeTareas();closeModal('modal-tarea');toast('Tarea guardada ✓','success');
       if(state.currentPage==='tareas')renderTareas();else renderDashboard();
     }
