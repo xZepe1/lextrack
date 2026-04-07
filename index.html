@@ -212,6 +212,28 @@ select.filter-select:focus{outline:none;border-color:var(--gold);}
 .seg-del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:2px 5px;border-radius:4px;line-height:1;}
 .seg-del-btn:hover{background:var(--red-dim);color:var(--red);}
 
+/* CLIENTES */
+.cliente-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;}
+.cliente-card:hover{border-color:var(--border2);}
+.cliente-nombre{font-size:14.5px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.cliente-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:var(--text3);}
+.cliente-estado{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;}
+.cl-activo{background:var(--green-dim);color:var(--green);}
+.cl-inactivo{background:var(--surface3);color:var(--text3);}
+.cl-potencial{background:var(--orange-dim);color:var(--orange);}
+.com-entry{background:var(--surface2);border-radius:8px;padding:10px 13px;margin-bottom:7px;border-left:3px solid var(--border2);}
+.com-canal-wa{border-left-color:#25d366;}.com-canal-email{border-left-color:#4285f4;}.com-canal-tel{border-left-color:var(--accent);}.com-canal-presencial{border-left-color:var(--purple);}
+.com-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px;flex-wrap:wrap;}
+.com-autor{font-size:11.5px;font-weight:600;color:var(--text2);}
+.com-ts{font-size:11px;color:var(--text3);}
+.com-texto{font-size:13px;color:var(--text);line-height:1.5;}
+/* PLAZOS */
+.plazo-resultado{background:var(--surface2);border:2px solid var(--accent);border-radius:var(--radius);padding:18px 22px;margin-top:16px;text-align:center;}
+.plazo-fecha-result{font-size:26px;font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace;}
+.plazo-tipo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
+.plazo-tipo-card:hover,.plazo-tipo-card.selected{border-color:var(--accent);background:var(--gold-dim);}
+.plazo-tipo-nombre{font-size:13px;font-weight:600;color:var(--text);}
+.plazo-tipo-desc{font-size:11.5px;color:var(--text3);margin-top:2px;}
 /* HONORARIOS */
 .honorario-item{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;align-items:center;}
 .honorario-monto{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;white-space:nowrap;}
@@ -370,6 +392,14 @@ canvas{max-width:100%;}
     <div class="nav-item" onclick="navigate('estadisticas')">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Estadísticas
+    </div>
+    <div class="nav-item" onclick="navigate('clientes')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Clientes
+    </div>
+    <div class="nav-item" onclick="navigate('plazos')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Calc. Plazos
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -579,6 +609,43 @@ canvas{max-width:100%;}
     <div id="estadisticas-content"></div>
   </div>
 
+  <div id="page-clientes" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Clientes</div><div class="page-subtitle">Fichas con causas, historial de comunicaciones y notas</div></div>
+      <button class="btn btn-primary" onclick="openModalCliente()">+ Nuevo Cliente</button>
+    </div>
+    <div class="filter-bar" style="margin-bottom:16px">
+      <input type="text" class="filter-select" id="filter-cliente-q" placeholder="🔍 Buscar por nombre, CUIT, email..." oninput="renderClientes()" style="flex:1;min-width:200px">
+      <select class="filter-select" id="filter-cliente-tipo" onchange="renderClientes()">
+        <option value="">Todos</option>
+        <option value="persona_fisica">Persona física</option>
+        <option value="persona_juridica">Persona jurídica</option>
+      </select>
+      <select class="filter-select" id="filter-cliente-estado" onchange="renderClientes()">
+        <option value="">Todo estado</option>
+        <option value="activo">Activo</option>
+        <option value="inactivo">Inactivo</option>
+        <option value="potencial">Potencial</option>
+      </select>
+    </div>
+    <div id="clientes-list"></div>
+  </div>
+
+  <div id="page-cliente-detail" class="page">
+    <div class="back-btn" onclick="navigate('clientes')" style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text3);font-size:13px;margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver a clientes
+    </div>
+    <div id="cliente-detail-content"></div>
+  </div>
+
+  <div id="page-plazos" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Calculadora de Plazos</div><div class="page-subtitle">Días hábiles judiciales — CPCC PBA y CPCCN</div></div>
+    </div>
+    <div id="plazos-content"></div>
+  </div>
+
 </div>
 
 <!-- ══════════════════ MODALES ══════════════════ -->
@@ -716,6 +783,56 @@ canvas{max-width:100%;}
   </div>
 </div>
 
+<!-- CLIENTE -->
+<div class="modal-overlay" id="modal-cliente" onclick="closeModalIfOverlay(event,'modal-cliente')">
+  <div class="modal" style="max-width:640px" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-cliente-title">Nuevo Cliente</div>
+    <div class="modal-grid">
+      <div class="form-group"><label class="form-label">Tipo *</label>
+        <select class="form-select" id="mcl-tipo"><option value="persona_fisica">Persona física</option><option value="persona_juridica">Persona jurídica</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Estado</label>
+        <select class="form-select" id="mcl-estado"><option value="activo">Activo</option><option value="potencial">Potencial</option><option value="inactivo">Inactivo</option></select>
+      </div>
+      <div class="form-group span2"><label class="form-label">Nombre / Razón social *</label><input type="text" class="form-input" id="mcl-nombre" placeholder="Ej: García Juan Carlos / Empresa SA"></div>
+      <div class="form-group"><label class="form-label">DNI / CUIT</label><input type="text" class="form-input" id="mcl-cuit" placeholder="20-12345678-3"></div>
+      <div class="form-group"><label class="form-label">Abogado responsable</label><input type="text" class="form-input" id="mcl-responsable" placeholder="Nombre del abogado"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input type="text" class="form-input" id="mcl-tel" placeholder="+54 9 11 1234-5678"></div>
+      <div class="form-group"><label class="form-label">WhatsApp</label><input type="text" class="form-input" id="mcl-whatsapp" placeholder="+54 9 11 1234-5678"></div>
+      <div class="form-group span2"><label class="form-label">Email</label><input type="email" class="form-input" id="mcl-email" placeholder="cliente@email.com"></div>
+      <div class="form-group span2"><label class="form-label">Domicilio</label><input type="text" class="form-input" id="mcl-domicilio" placeholder="Calle 123, Localidad"></div>
+      <div class="form-group span2"><label class="form-label">Notas / Observaciones</label><textarea class="form-textarea" id="mcl-notas" placeholder="Información relevante, preferencias de comunicación, antecedentes..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-cliente" onclick="saveCliente()">Guardar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMUNICACION CLIENTE -->
+<div class="modal-overlay" id="modal-comunicacion" onclick="closeModalIfOverlay(event,'modal-comunicacion')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Registrar Comunicación</div>
+    <div class="modal-grid">
+      <div class="form-group"><label class="form-label">Canal</label>
+        <select class="form-select" id="mcom-canal">
+          <option value="whatsapp">💬 WhatsApp</option><option value="email">📧 Email</option>
+          <option value="telefono">📞 Teléfono</option><option value="presencial">🤝 Presencial</option><option value="otro">📌 Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="mcom-fecha"></div>
+      <div class="form-group"><label class="form-label">Abogado que comunicó</label><input type="text" class="form-input" id="mcom-autor" placeholder="Nombre del profesional"></div>
+      <div class="form-group"><label class="form-label">Causa vinculada (opcional)</label><select class="form-select" id="mcom-causa"></select></div>
+      <div class="form-group span2"><label class="form-label">Resumen *</label><textarea class="form-textarea" id="mcom-resumen" placeholder="Ej: Se informó al cliente el resultado de la audiencia del 12/03. Manifestó conformidad con la propuesta..." style="min-height:90px"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-comunicacion')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-comunicacion" onclick="saveComunicacion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- CAUTELAR -->
 <div class="modal-overlay" id="modal-cautelar" onclick="closeModalIfOverlay(event,'modal-cautelar')">
   <div class="modal" onclick="event.stopPropagation()">
@@ -820,7 +937,7 @@ canvas{max-width:100%;}
 const CLIENT_ID = '604855232321-hah4j4jivl6r66s18hspa91jbq22li5q.apps.googleusercontent.com';
 const SHEET_ID  = '1ZZtoSbPsGIzIGeBWNl1KwoUWpyvbzb46EV9ms2JEvoc';
 const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
-const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas' };
+const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas', clientes:'Clientes' };
 
 // ══════════════════ BASE DE DATOS JUZGADOS ══════════════════
 // PBA: organizado por fuero → localidad → lista de juzgados
@@ -1415,10 +1532,10 @@ const LOCALIDADES_PBA = [...new Set(
 let accessToken = null;
 let currentUser = { email: '', name: '' };  // se llena al hacer login
 let state = {
-  causas:[], audiencias:[], alertas:[], tareas:[], cautelares:[], honorarios:[], plantillas:[],
+  causas:[], audiencias:[], alertas:[], tareas:[], cautelares:[], honorarios:[], plantillas:[], clientes:[],
   currentPage:'dashboard', currentCausaId:null, currentMovimientoCausaId:null,
   editingCausaId:null, editingTareaId:null, editingCautelarId:null, editingPlantillaId:null,
-  editingAudienciaId:null, currentPlantillaId:null,
+  editingAudienciaId:null, editingClienteId:null, currentClienteId:null, currentPlantillaId:null,
 };
 let charts = {};
 
@@ -1676,9 +1793,9 @@ function safeJSON(s,f){try{return JSON.parse(s||'');}catch{return f;}}
 // ══════════════════ LOAD / SAVE ══════════════════
 async function loadAllData(){
   try{
-    const [rc,ra,ral,rt,rcat,rh,rpl]=await Promise.all([
+    const [rc,ra,ral,rt,rcat,rh,rpl,rcl]=await Promise.all([
       sheetsGet(`${TABS.causas}!A2:P`),sheetsGet(`${TABS.audiencias}!A2:G`),sheetsGet(`${TABS.alertas}!A2:F`),
-      sheetsGet(`${TABS.tareas}!A2:I`),sheetsGet(`${TABS.cautelares}!A2:H`),sheetsGet(`${TABS.honorarios}!A2:H`),sheetsGet(`${TABS.plantillas}!A2:E`),
+      sheetsGet(`${TABS.tareas}!A2:I`),sheetsGet(`${TABS.cautelares}!A2:H`),sheetsGet(`${TABS.honorarios}!A2:H`),sheetsGet(`${TABS.plantillas}!A2:E`),sheetsGet(`${TABS.clientes}!A2:N`),
     ]);
     state.causas=(rc.values||[]).map(rowToCausa).filter(Boolean);
     state.audiencias=(ra.values||[]).map(rowToAud).filter(Boolean);
@@ -1687,6 +1804,7 @@ async function loadAllData(){
     state.cautelares=(rcat.values||[]).map(rowToCautelar).filter(Boolean);
     state.honorarios=(rh.values||[]).map(rowToHonorario).filter(Boolean);
     state.plantillas=(rpl.values||[]).map(rowToPlantilla).filter(Boolean);
+    state.clientes=(rcl.values||[]).map(rowToCliente).filter(Boolean);
     setSyncStatus('ok');
   }catch(e){toast('Error al cargar: '+e.message,'error');setSyncStatus('error');}
 }
@@ -1712,6 +1830,15 @@ async function writeTareas(){setSyncStatus('syncing');try{await sheetsClear(`${T
 async function writeCautelares(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.cautelares}!A1:H`);await sheetsUpdate(`${TABS.cautelares}!A1`,[['id','tipo','causaId','descripcion','fechaTraba','fechaCaducidad','notas','levantada'],...state.cautelares.map(cautelarToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 async function writeHonorarios(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.honorarios}!A1:H`);await sheetsUpdate(`${TABS.honorarios}!A1`,[['id','tipo','monto','concepto','fecha','causaId','notas','unidad'],...state.honorarios.map(honorarioToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 async function writePlantillas(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.plantillas}!A1:E`);await sheetsUpdate(`${TABS.plantillas}!A1`,[['id','nombre','fuero','contenido','categoria'],...state.plantillas.map(plantillaToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
+function rowToCliente(r){
+  if(!r[0])return null;
+  let com=[],causasIds=[];
+  try{com=JSON.parse(r[7]||'[]');}catch(e){}
+  try{causasIds=JSON.parse(r[8]||'[]');}catch(e){}
+  return{id:r[0],tipo:r[1]||'persona_fisica',nombre:r[2]||'',cuit:r[3]||'',tel:r[4]||'',email:r[5]||'',whatsapp:r[6]||'',comunicaciones:com,causasIds,domicilio:r[9]||'',responsable:r[10]||'',estado:r[11]||'activo',notas:r[12]||'',fechaCreacion:r[13]||''};
+}
+function clienteToRow(c){return[c.id,c.tipo,c.nombre,c.cuit||'',c.tel||'',c.email||'',c.whatsapp||'',JSON.stringify(c.comunicaciones||[]),JSON.stringify(c.causasIds||[]),c.domicilio||'',c.responsable||'',c.estado||'activo',c.notas||'',c.fechaCreacion||''];}
+async function writeClientes(){setSyncStatus('syncing');try{await sheetsClear(`${TABS.clientes}!A1:N`);await sheetsUpdate(`${TABS.clientes}!A1`,[['id','tipo','nombre','cuit','tel','email','whatsapp','comunicaciones','causasIds','domicilio','responsable','estado','notas','fechaCreacion'],...state.clientes.map(clienteToRow)]);setSyncStatus('ok');}catch(e){setSyncStatus('error');}}
 
 // ══════════════════ NAVIGATION ══════════════════
 function navigate(page){
@@ -1719,7 +1846,7 @@ function navigate(page){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('page-'+page);
   if(pg)pg.classList.add('active');
-  const navMap={dashboard:0,causas:1,tareas:2,agenda:3,alertas:4,cautelares:5,honorarios:6,plantillas:7,estadisticas:8};
+  const navMap={dashboard:0,causas:1,tareas:2,agenda:3,alertas:4,cautelares:5,honorarios:6,plantillas:7,estadisticas:8,clientes:9,plazos:10};
   const navItems=document.querySelectorAll('.nav-item');
   if(navMap[page]!==undefined&&navItems[navMap[page]])navItems[navMap[page]].classList.add('active');
   state.currentPage=page;
@@ -1767,6 +1894,8 @@ function renderPage(p){
   else if(p==='honorarios')renderHonorarios();
   else if(p==='plantillas')renderPlantillas();
   else if(p==='estadisticas')renderEstadisticas();
+  else if(p==='clientes')renderClientes();
+  else if(p==='plazos')renderPlazos();
 }
 
 // ══════════════════ UTILS ══════════════════
@@ -3040,6 +3169,469 @@ Observaciones: [NOTAS DEL PROFESIONAL]`},
   ];
   state.plantillas=defaults;
   writePlantillas();
+}
+
+// ══════════════════ CLIENTES ══════════════════
+const CANAL_ICONS = {whatsapp:'💬',email:'📧',telefono:'📞',presencial:'🤝',otro:'📌'};
+const ESTADO_CLIENTE_LABEL = {activo:'Activo',inactivo:'Inactivo',potencial:'Potencial'};
+
+function renderClientes(){
+  const container = document.getElementById('clientes-list');
+  const q = (document.getElementById('filter-cliente-q')?.value||'').toLowerCase();
+  const tipo = document.getElementById('filter-cliente-tipo')?.value||'';
+  const estado = document.getElementById('filter-cliente-estado')?.value||'';
+  let list = state.clientes;
+  if(q) list = list.filter(c=>c.nombre.toLowerCase().includes(q)||c.cuit.includes(q)||c.email.toLowerCase().includes(q)||c.tel.includes(q));
+  if(tipo) list = list.filter(c=>c.tipo===tipo);
+  if(estado) list = list.filter(c=>c.estado===estado);
+  list = list.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  if(!list.length){
+    container.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Sin clientes cargados</div><div class="empty-sub">Agregá el primer cliente para comenzar</div></div>`;
+    return;
+  }
+  container.innerHTML = list.map(c=>{
+    const causas = state.causas.filter(ca=>ca.id&&(c.causasIds||[]).includes(ca.id));
+    const nCom = (c.comunicaciones||[]).length;
+    return`<div class="cliente-card" onclick="showCliente('${c.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="cliente-nombre">${c.nombre}</div>
+          <div class="cliente-meta">
+            <span class="cliente-estado cl-${c.estado}">${ESTADO_CLIENTE_LABEL[c.estado]||c.estado}</span>
+            <span>${c.tipo==='persona_juridica'?'🏢 Persona jurídica':'👤 Persona física'}</span>
+            ${c.cuit?`<span>🪪 ${c.cuit}</span>`:''}
+            ${c.tel?`<span>📞 ${c.tel}</span>`:''}
+            ${c.email?`<span>📧 ${c.email}</span>`:''}
+            ${c.responsable?`<span>⚖️ ${c.responsable}</span>`:''}
+            ${causas.length?`<span style="color:var(--accent)">📁 ${causas.length} causa${causas.length!==1?'s':''}</span>`:''}
+            ${nCom?`<span style="color:var(--purple)">💬 ${nCom} com.</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editCliente('${c.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCliente('${c.id}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showCliente(clienteId){
+  const c = state.clientes.find(x=>x.id===clienteId); if(!c) return;
+  state.currentClienteId = clienteId;
+  const causas = state.causas.filter(ca=>(c.causasIds||[]).includes(ca.id));
+  const tareas = state.tareas.filter(t=>t.causaId&&causas.some(ca=>ca.id===t.causaId)&&!t.completada);
+  const honorarios = state.honorarios.filter(h=>h.causaId&&causas.some(ca=>ca.id===h.causaId));
+  const totalHon = honorarios.filter(h=>h.tipo==='ingreso').reduce((s,h)=>s+h.monto,0);
+  const coms = (c.comunicaciones||[]).slice().reverse();
+  const causasDisponibles = state.causas.filter(ca=>!(c.causasIds||[]).includes(ca.id));
+
+  document.getElementById('cliente-detail-content').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:22px;font-weight:700;color:var(--text)">${c.nombre}</div>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <span class="cliente-estado cl-${c.estado}">${ESTADO_CLIENTE_LABEL[c.estado]}</span>
+          <span style="font-size:12px;color:var(--text3)">${c.tipo==='persona_juridica'?'🏢 Persona jurídica':'👤 Persona física'}</span>
+          ${c.responsable?`<span style="font-size:12px;color:var(--text3)">⚖️ ${c.responsable}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="openModalComunicacion('${c.id}')">+ Comunicación</button>
+        <button class="btn btn-ghost" onclick="editCliente('${c.id}')">✏️ Editar</button>
+      </div>
+    </div>
+
+    <!-- Datos de contacto -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title" style="margin-bottom:12px">Datos de contacto</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;font-size:13px">
+        ${c.cuit?`<div><span style="color:var(--text3)">CUIT/DNI</span><div style="font-weight:500">${c.cuit}</div></div>`:''}
+        ${c.tel?`<div><span style="color:var(--text3)">Teléfono</span><div style="font-weight:500">${c.tel}</div></div>`:''}
+        ${c.whatsapp?`<div><span style="color:var(--text3)">WhatsApp</span><div style="font-weight:500"><a href="https://wa.me/${c.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--accent)">${c.whatsapp}</a></div></div>`:''}
+        ${c.email?`<div><span style="color:var(--text3)">Email</span><div style="font-weight:500"><a href="mailto:${c.email}" style="color:var(--accent)">${c.email}</a></div></div>`:''}
+        ${c.domicilio?`<div style="grid-column:span 2"><span style="color:var(--text3)">Domicilio</span><div style="font-weight:500">${c.domicilio}</div></div>`:''}
+      </div>
+      ${c.notas?`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:13px;color:var(--text2)">${c.notas}</div>`:''}
+    </div>
+
+    <!-- Resumen -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div class="stat-card" style="padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:var(--accent)">${causas.length}</div>
+        <div style="font-size:12px;color:var(--text3)">Causas activas</div>
+      </div>
+      <div class="stat-card" style="padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:var(--orange)">${tareas.length}</div>
+        <div style="font-size:12px;color:var(--text3)">Tareas pendientes</div>
+      </div>
+      <div class="stat-card" style="padding:14px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(totalHon)}</div>
+        <div style="font-size:12px;color:var(--text3)">Honorarios cobrados</div>
+      </div>
+    </div>
+
+    <!-- Causas -->
+    <div class="section-title" style="margin-bottom:10px">Causas vinculadas
+      <button class="btn btn-ghost btn-sm" style="margin-left:10px" onclick="mostrarVincularCausa('${c.id}')">+ Vincular causa</button>
+    </div>
+    <div id="cl-causas-list" style="margin-bottom:20px">
+      ${causas.length?causas.map(ca=>`
+        <div class="card" style="padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="showCausa('${ca.id}')">
+          <div>
+            <div style="font-size:13px;font-weight:500">${ca.caratula}</div>
+            <div style="font-size:11px;color:var(--text3)">${ca.numero||'Sin nro'} · <span class="fuero-badge ${fueroClass(ca.fuero)}">${fueroLabel(ca.fuero)}</span> · <span class="estado-badge estado-${ca.estado}">${estadoLabel(ca.estado)}</span></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();desvincularCausa('${c.id}','${ca.id}')">✕</button>
+        </div>`).join('')
+      :`<div style="color:var(--text3);font-size:13px;padding:10px 0">Sin causas vinculadas.</div>`}
+    </div>
+    <div id="cl-vincular-form" style="display:none;margin-bottom:20px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="form-select" id="cl-causa-select" style="flex:1">
+          <option value="">— Seleccioná una causa —</option>
+          ${causasDisponibles.map(ca=>`<option value="${ca.id}">${ca.caratula.slice(0,60)}${ca.numero?' — Expte. '+ca.numero:''}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="vincularCausa('${c.id}')">Vincular</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cl-vincular-form').style.display='none'">✕</button>
+      </div>
+    </div>
+
+    <!-- Historial de comunicaciones -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="section-title">Historial de comunicaciones</div>
+      <button class="btn btn-ghost btn-sm" onclick="openModalComunicacion('${c.id}')">+ Nueva</button>
+    </div>
+    <div id="cl-com-list">
+    ${coms.length?coms.map((com,iRev)=>{
+      const iReal=coms.length-1-iRev;
+      const canal=com.canal||'otro';
+      return`<div class="com-entry com-canal-${canal}">
+        <div class="com-header">
+          <div><span class="com-autor">${CANAL_ICONS[canal]||'📌'} ${com.autor||'Sin autor'}</span>
+            ${com.causa?`<span style="font-size:11px;color:var(--text3);margin-left:6px">· ${com.causa}</span>`:''}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="com-ts">${formatDate(com.fecha)||'—'}</span>
+            <button class="seg-del-btn" onclick="borrarComunicacion('${c.id}',${iReal})">✕</button>
+          </div>
+        </div>
+        <div class="com-texto">${com.resumen.replace(/</g,'&lt;')}</div>
+      </div>`;
+    }).join(''):`<div style="color:var(--text3);font-size:13px;padding:10px 0">Sin comunicaciones registradas.</div>`}
+    </div>
+  `;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-cliente-detail').classList.add('active');
+  state.currentPage = 'cliente-detail';
+}
+
+function mostrarVincularCausa(id){
+  document.getElementById('cl-vincular-form').style.display='flex';
+}
+async function vincularCausa(clienteId){
+  const causaId = document.getElementById('cl-causa-select').value; if(!causaId)return;
+  const c = state.clientes.find(x=>x.id===clienteId); if(!c)return;
+  if(!c.causasIds)c.causasIds=[];
+  if(!c.causasIds.includes(causaId)){c.causasIds.push(causaId);await writeClientes();}
+  showCliente(clienteId);
+}
+async function desvincularCausa(clienteId,causaId){
+  if(!confirm('¿Desvincular esta causa del cliente?'))return;
+  const c=state.clientes.find(x=>x.id===clienteId);if(!c)return;
+  c.causasIds=(c.causasIds||[]).filter(id=>id!==causaId);
+  await writeClientes(); showCliente(clienteId);
+}
+
+function openModalCliente(){
+  state.editingClienteId=null;
+  document.getElementById('modal-cliente-title').textContent='Nuevo Cliente';
+  ['nombre','cuit','tel','whatsapp','email','domicilio','responsable','notas'].forEach(f=>{
+    const el=document.getElementById('mcl-'+f);if(el)el.value='';
+  });
+  document.getElementById('mcl-tipo').value='persona_fisica';
+  document.getElementById('mcl-estado').value='activo';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+function editCliente(clienteId){
+  const c=state.clientes.find(x=>x.id===clienteId);if(!c)return;
+  state.editingClienteId=clienteId;
+  document.getElementById('modal-cliente-title').textContent='Editar Cliente';
+  document.getElementById('mcl-tipo').value=c.tipo||'persona_fisica';
+  document.getElementById('mcl-estado').value=c.estado||'activo';
+  document.getElementById('mcl-nombre').value=c.nombre||'';
+  document.getElementById('mcl-cuit').value=c.cuit||'';
+  document.getElementById('mcl-tel').value=c.tel||'';
+  document.getElementById('mcl-whatsapp').value=c.whatsapp||'';
+  document.getElementById('mcl-email').value=c.email||'';
+  document.getElementById('mcl-domicilio').value=c.domicilio||'';
+  document.getElementById('mcl-responsable').value=c.responsable||'';
+  document.getElementById('mcl-notas').value=c.notas||'';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+async function saveCliente(){
+  const nombre=document.getElementById('mcl-nombre').value.trim();
+  if(!nombre){alert('El nombre es obligatorio.');return;}
+  const btn=document.getElementById('btn-save-cliente');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    if(state.editingClienteId){
+      const c=state.clientes.find(x=>x.id===state.editingClienteId);
+      if(c){c.tipo=document.getElementById('mcl-tipo').value;c.estado=document.getElementById('mcl-estado').value;c.nombre=nombre;c.cuit=document.getElementById('mcl-cuit').value.trim();c.tel=document.getElementById('mcl-tel').value.trim();c.whatsapp=document.getElementById('mcl-whatsapp').value.trim();c.email=document.getElementById('mcl-email').value.trim();c.domicilio=document.getElementById('mcl-domicilio').value.trim();c.responsable=document.getElementById('mcl-responsable').value.trim();c.notas=document.getElementById('mcl-notas').value.trim();}
+      await writeClientes();closeModal('modal-cliente');toast('Cliente actualizado ✓','success');
+      if(state.currentClienteId===state.editingClienteId)showCliente(state.editingClienteId);
+      else renderClientes();
+    }else{
+      const cl={id:uid(),tipo:document.getElementById('mcl-tipo').value,estado:document.getElementById('mcl-estado').value,nombre,cuit:document.getElementById('mcl-cuit').value.trim(),tel:document.getElementById('mcl-tel').value.trim(),whatsapp:document.getElementById('mcl-whatsapp').value.trim(),email:document.getElementById('mcl-email').value.trim(),domicilio:document.getElementById('mcl-domicilio').value.trim(),responsable:document.getElementById('mcl-responsable').value.trim(),notas:document.getElementById('mcl-notas').value.trim(),comunicaciones:[],causasIds:[],fechaCreacion:todayISO()};
+      state.clientes.push(cl);await writeClientes();closeModal('modal-cliente');toast('Cliente guardado ✓','success');renderClientes();
+    }
+  }finally{btn.disabled=false;btn.textContent='Guardar Cliente';}
+}
+async function deleteCliente(id){
+  if(!confirm('¿Eliminar este cliente? Se perderán sus comunicaciones y notas.'))return;
+  state.clientes=state.clientes.filter(c=>c.id!==id);
+  await writeClientes();toast('Cliente eliminado','success');renderClientes();
+}
+
+let _comunicacionClienteId=null;
+function openModalComunicacion(clienteId){
+  _comunicacionClienteId=clienteId;
+  const c=state.clientes.find(x=>x.id===clienteId);
+  document.getElementById('mcom-fecha').value=todayISO();
+  document.getElementById('mcom-canal').value='whatsapp';
+  document.getElementById('mcom-autor').value='';
+  document.getElementById('mcom-resumen').value='';
+  // Populate causa select with this client's causes
+  const causasC=state.causas.filter(ca=>(c?.causasIds||[]).includes(ca.id));
+  const sel=document.getElementById('mcom-causa');
+  sel.innerHTML='<option value="">— Sin causa específica —</option>'+causasC.map(ca=>`<option value="${ca.caratula.slice(0,50)}">${ca.caratula.slice(0,50)}${ca.numero?' — Expte. '+ca.numero:''}</option>`).join('');
+  document.getElementById('modal-comunicacion').classList.add('open');
+}
+async function saveComunicacion(){
+  const resumen=document.getElementById('mcom-resumen').value.trim();
+  if(!resumen){alert('El resumen es obligatorio.');return;}
+  const c=state.clientes.find(x=>x.id===_comunicacionClienteId);if(!c)return;
+  const btn=document.getElementById('btn-save-comunicacion');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    if(!c.comunicaciones)c.comunicaciones=[];
+    c.comunicaciones.push({fecha:document.getElementById('mcom-fecha').value,canal:document.getElementById('mcom-canal').value,autor:document.getElementById('mcom-autor').value.trim(),causa:document.getElementById('mcom-causa').value,resumen});
+    await writeClientes();closeModal('modal-comunicacion');toast('Comunicación registrada ✓','success');
+    if(state.currentClienteId===_comunicacionClienteId)showCliente(_comunicacionClienteId);
+  }finally{btn.disabled=false;btn.textContent='Guardar';}
+}
+async function borrarComunicacion(clienteId,idx){
+  if(!confirm('¿Eliminar esta comunicación?'))return;
+  const c=state.clientes.find(x=>x.id===clienteId);if(!c)return;
+  c.comunicaciones.splice(idx,1);
+  await writeClientes();toast('Comunicación eliminada','success');showCliente(clienteId);
+}
+
+// ══════════════════ CALCULADORA DE PLAZOS ══════════════════
+// Feriados nacionales fijos (MM-DD) + criterio para feriados móviles
+const FERIADOS_FIJOS = new Set([
+  '01-01','03-24','04-02','05-01','05-25','06-20','07-09','12-08','12-25',
+]);
+// Feriados inamovibles + trasladables conocidos 2024-2026 (fecha exacta YYYY-MM-DD)
+const FERIADOS_EXACTOS = new Set([
+  // 2024
+  '2024-02-12','2024-02-13','2024-03-28','2024-03-29','2024-04-01',
+  '2024-06-17','2024-08-19','2024-10-11','2024-11-18','2024-11-20',
+  // 2025
+  '2025-03-03','2025-03-04','2025-04-17','2025-04-18',
+  '2025-06-16','2025-08-18','2025-10-13','2025-11-20',
+  // 2026
+  '2026-02-16','2026-02-17','2026-04-02','2026-04-03',
+  '2026-06-15','2026-08-17','2026-10-12','2026-11-20',
+]);
+
+function esFeriadoNacional(d){
+  const iso=d.toISOString().split('T')[0];
+  if(FERIADOS_EXACTOS.has(iso))return true;
+  const mmdd=iso.slice(5);
+  return FERIADOS_FIJOS.has(mmdd);
+}
+function esDiaHabil(d,tribunal='PBA'){
+  const dow=d.getDay();
+  if(dow===0||dow===6)return false; // sábado o domingo
+  if(esFeriadoNacional(d))return false;
+  return true;
+}
+function sumarDiasHabiles(fechaBase,dias,tribunal='PBA'){
+  let d=new Date(fechaBase);d.setHours(12,0,0,0);
+  let restantes=dias;
+  while(restantes>0){
+    d.setDate(d.getDate()+1);
+    if(esDiaHabil(d,tribunal))restantes--;
+  }
+  return d;
+}
+function sumarMeses(fechaBase,meses){
+  const d=new Date(fechaBase);d.setHours(12,0,0,0);
+  d.setMonth(d.getMonth()+meses);
+  // Si el vencimiento cae en no hábil, avanzar al siguiente hábil
+  while(!esDiaHabil(d))d.setDate(d.getDate()+1);
+  return d;
+}
+function sumarAnios(fechaBase,anios){
+  return sumarMeses(fechaBase,anios*12);
+}
+
+const PLAZOS_PBA=[
+  {id:'traslado_demanda',cat:'Notificaciones',nombre:'Traslado de demanda',desc:'Art. 337 CPCC PBA — 15 días hábiles',tipo:'habiles',dias:15},
+  {id:'traslado_10',cat:'Notificaciones',nombre:'Traslado genérico (10 días)',desc:'Art. 150 CPCC PBA — traslados y vistas generales',tipo:'habiles',dias:10},
+  {id:'traslado_5',cat:'Notificaciones',nombre:'Traslado (5 días)',desc:'Art. 150 CPCC PBA — vistas e incidentes',tipo:'habiles',dias:5},
+  {id:'apelar_interlocutoria',cat:'Recursos',nombre:'Apelar sentencia interlocutoria',desc:'Art. 244 CPCC PBA — 5 días hábiles',tipo:'habiles',dias:5},
+  {id:'apelar_definitiva',cat:'Recursos',nombre:'Apelar sentencia definitiva',desc:'Art. 244 CPCC PBA — 10 días hábiles',tipo:'habiles',dias:10},
+  {id:'expresar_agravios',cat:'Recursos',nombre:'Expresar agravios (Cámara)',desc:'Art. 259 CPCC PBA — 10 días hábiles',tipo:'habiles',dias:10},
+  {id:'contestar_agravios',cat:'Recursos',nombre:'Contestar agravios',desc:'Art. 260 CPCC PBA — 10 días hábiles',tipo:'habiles',dias:10},
+  {id:'caducidad_1ra',cat:'Caducidad',nombre:'Caducidad de instancia (1ª instancia)',desc:'Art. 310 CPCC PBA — 6 meses de inactividad',tipo:'meses',meses:6},
+  {id:'caducidad_2da',cat:'Caducidad',nombre:'Caducidad de instancia (2ª instancia)',desc:'Art. 310 CPCC PBA — 3 meses de inactividad',tipo:'meses',meses:3},
+  {id:'prescripcion_laboral',cat:'Prescripción',nombre:'Prescripción laboral (LCT)',desc:'Art. 256 LCT — 2 años desde extinción',tipo:'anios',anios:2},
+  {id:'prescripcion_civil',cat:'Prescripción',nombre:'Prescripción ordinaria civil',desc:'Art. 2560 CCyCN — 5 años',tipo:'anios',anios:5},
+  {id:'prescripcion_daños',cat:'Prescripción',nombre:'Prescripción daños y perjuicios',desc:'Art. 2561 CCyCN — 3 años',tipo:'anios',anios:3},
+  {id:'prescripcion_consumidor',cat:'Prescripción',nombre:'Prescripción Ley defensa del consumidor',desc:'Art. 50 Ley 24.240 — 3 años',tipo:'anios',anios:3},
+  {id:'cautelar_caducidad',cat:'Cautelares',nombre:'Caducidad de cautelar (PBA)',desc:'Art. 207 CPCC PBA — 10 días para iniciar demanda',tipo:'habiles',dias:10},
+  {id:'prueba_15',cat:'Prueba',nombre:'Plazo ordinario de prueba',desc:'Art. 365 CPCC PBA — hasta 40 días',tipo:'habiles',dias:40},
+  {id:'alegar_6',cat:'Alegatos',nombre:'Presentar alegatos',desc:'Art. 482 CPCC PBA — 6 días hábiles',tipo:'habiles',dias:6},
+];
+const PLAZOS_NACION=[
+  {id:'traslado_demanda_n',cat:'Notificaciones',nombre:'Traslado de demanda',desc:'Art. 338 CPCCN — 15 días hábiles',tipo:'habiles',dias:15},
+  {id:'traslado_10_n',cat:'Notificaciones',nombre:'Traslado genérico (10 días)',desc:'Art. 150 CPCCN — traslados y vistas generales',tipo:'habiles',dias:10},
+  {id:'traslado_5_n',cat:'Notificaciones',nombre:'Traslado (5 días)',desc:'Art. 150 CPCCN — vistas e incidentes',tipo:'habiles',dias:5},
+  {id:'apelar_inter_n',cat:'Recursos',nombre:'Apelar sentencia interlocutoria',desc:'Art. 244 CPCCN — 5 días hábiles',tipo:'habiles',dias:5},
+  {id:'apelar_def_n',cat:'Recursos',nombre:'Apelar sentencia definitiva',desc:'Art. 244 CPCCN — 5 días hábiles',tipo:'habiles',dias:5},
+  {id:'expresar_agravios_n',cat:'Recursos',nombre:'Expresar agravios (Cámara)',desc:'Art. 259 CPCCN — 10 días hábiles',tipo:'habiles',dias:10},
+  {id:'contestar_agravios_n',cat:'Recursos',nombre:'Contestar agravios',desc:'Art. 260 CPCCN — 10 días hábiles',tipo:'habiles',dias:10},
+  {id:'caducidad_1ra_n',cat:'Caducidad',nombre:'Caducidad de instancia (1ª instancia)',desc:'Art. 310 CPCCN — 3 meses de inactividad',tipo:'meses',meses:3},
+  {id:'caducidad_2da_n',cat:'Caducidad',nombre:'Caducidad de instancia (2ª instancia)',desc:'Art. 310 CPCCN — 1 mes de inactividad',tipo:'meses',meses:1},
+  {id:'prescripcion_laboral_n',cat:'Prescripción',nombre:'Prescripción laboral (LCT)',desc:'Art. 256 LCT — 2 años desde extinción',tipo:'anios',anios:2},
+  {id:'prescripcion_civil_n',cat:'Prescripción',nombre:'Prescripción ordinaria civil',desc:'Art. 2560 CCyCN — 5 años',tipo:'anios',anios:5},
+  {id:'prescripcion_daños_n',cat:'Prescripción',nombre:'Prescripción daños y perjuicios',desc:'Art. 2561 CCyCN — 3 años',tipo:'anios',anios:3},
+  {id:'cautelar_caducidad_n',cat:'Cautelares',nombre:'Caducidad de cautelar (PJN)',desc:'Art. 207 CPCCN — 10 días hábiles',tipo:'habiles',dias:10},
+  {id:'prueba_40_n',cat:'Prueba',nombre:'Plazo ordinario de prueba',desc:'Art. 367 CPCCN — hasta 40 días hábiles',tipo:'habiles',dias:40},
+  {id:'alegar_6_n',cat:'Alegatos',nombre:'Presentar alegatos',desc:'Art. 483 CPCCN — 6 días hábiles',tipo:'habiles',dias:6},
+];
+
+let _plazosEstado={tribunal:'PBA',fechaBase:'',plazoId:null,resultado:null};
+
+function renderPlazos(){
+  const container=document.getElementById('plazos-content');
+  const tribunal=_plazosEstado.tribunal;
+  const plazos=tribunal==='PBA'?PLAZOS_PBA:PLAZOS_NACION;
+  const cats=[...new Set(plazos.map(p=>p.cat))];
+  const plazoSel=plazos.find(p=>p.id===_plazosEstado.plazoId);
+
+  container.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <!-- Columna izquierda: selector -->
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="section-title" style="margin-bottom:12px">Código procesal</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn ${tribunal==='PBA'?'btn-primary':'btn-ghost'}" onclick="setTribunal('PBA')" style="flex:1">CPCC PBA</button>
+            <button class="btn ${tribunal==='PJN'?'btn-primary':'btn-ghost'}" onclick="setTribunal('PJN')" style="flex:1">CPCCN (PJN)</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="section-title" style="margin-bottom:12px">Fecha del acto / notificación</div>
+          <input type="date" class="form-input" id="plazo-fecha-base" value="${_plazosEstado.fechaBase||todayISO()}" onchange="_plazosEstado.fechaBase=this.value;calcularPlazo()">
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">⚠️ El plazo comienza a correr a partir del día hábil siguiente a la notificación.</div>
+        </div>
+        <div class="section-title" style="margin-bottom:10px">Tipo de plazo</div>
+        ${cats.map(cat=>`
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px">${cat}</div>
+          ${plazos.filter(p=>p.cat===cat).map(p=>`
+            <div class="plazo-tipo-card${_plazosEstado.plazoId===p.id?' selected':''}" onclick="seleccionarPlazo('${p.id}')">
+              <div class="plazo-tipo-nombre">${p.nombre}</div>
+              <div class="plazo-tipo-desc">${p.desc}</div>
+            </div>
+          `).join('')}
+        `).join('')}
+      </div>
+
+      <!-- Columna derecha: resultado -->
+      <div>
+        ${plazoSel&&_plazosEstado.resultado?`
+          <div class="plazo-resultado">
+            <div style="font-size:13px;color:var(--text3);margin-bottom:4px">${plazoSel.nombre}</div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${plazoSel.desc}</div>
+            <div style="font-size:13px;color:var(--text3);margin-bottom:4px">Fecha base: <strong>${formatDate(_plazosEstado.fechaBase)}</strong></div>
+            <div style="font-size:13px;color:var(--text3);margin-bottom:12px">
+              ${plazoSel.tipo==='habiles'?`Plazo: <strong>${plazoSel.dias} días hábiles</strong>`:
+                plazoSel.tipo==='meses'?`Plazo: <strong>${plazoSel.meses} ${plazoSel.meses===1?'mes':'meses'}</strong>`:
+                `Plazo: <strong>${plazoSel.anios} ${plazoSel.anios===1?'año':'años'}</strong>`}
+            </div>
+            <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Vencimiento:</div>
+            <div class="plazo-fecha-result">${formatDate(_plazosEstado.resultado.toISOString().split('T')[0])}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:8px">${_plazosEstado.resultado.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+            <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="crearAlertaDesdePlazo()">📅 Crear alerta</button>
+              <button class="btn btn-ghost" onclick="copiarFechaPlazo()">📋 Copiar fecha</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="section-title" style="margin-bottom:10px">Días hábiles del período</div>
+            <div style="font-size:12px;color:var(--text3)">
+              ${generarCalendarioPlazo(_plazosEstado.fechaBase,_plazosEstado.resultado)}
+            </div>
+          </div>
+        `:`
+          <div class="card" style="text-align:center;padding:40px 20px;color:var(--text3)">
+            <div style="font-size:36px;margin-bottom:12px">⚖️</div>
+            <div style="font-size:14px;font-weight:500;margin-bottom:6px">Calculadora lista</div>
+            <div style="font-size:13px">Seleccioná un tipo de plazo y la fecha del acto para calcular el vencimiento en días hábiles judiciales.</div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function setTribunal(t){_plazosEstado.tribunal=t;_plazosEstado.plazoId=null;_plazosEstado.resultado=null;renderPlazos();}
+function seleccionarPlazo(id){
+  _plazosEstado.plazoId=id;
+  _plazosEstado.fechaBase=document.getElementById('plazo-fecha-base')?.value||todayISO();
+  calcularPlazo();
+}
+function calcularPlazo(){
+  const {plazoId,fechaBase,tribunal}=_plazosEstado;
+  if(!plazoId||!fechaBase)return;
+  const plazos=tribunal==='PBA'?PLAZOS_PBA:PLAZOS_NACION;
+  const p=plazos.find(x=>x.id===plazoId);if(!p)return;
+  const base=new Date(fechaBase+'T12:00:00');
+  // El plazo corre desde el día siguiente hábil
+  if(p.tipo==='habiles') _plazosEstado.resultado=sumarDiasHabiles(base,p.dias,tribunal);
+  else if(p.tipo==='meses') _plazosEstado.resultado=sumarMeses(base,p.meses);
+  else if(p.tipo==='anios') _plazosEstado.resultado=sumarAnios(base,p.anios);
+  renderPlazos();
+}
+function generarCalendarioPlazo(fechaBaseStr,fechaFin){
+  if(!fechaBaseStr||!fechaFin)return '';
+  const base=new Date(fechaBaseStr+'T12:00:00');
+  const fin=new Date(fechaFin);fin.setHours(12,0,0,0);
+  let d=new Date(base);d.setDate(d.getDate()+1);
+  let habiles=0,inhabiles=0;
+  while(d<=fin){
+    if(esDiaHabil(d))habiles++;else inhabiles++;
+    d.setDate(d.getDate()+1);
+  }
+  return`<span style="color:var(--green)">✓ ${habiles} días hábiles</span> &nbsp;·&nbsp; <span style="color:var(--text3)">✗ ${inhabiles} días inhábiles</span> (feriados y fines de semana)`;
+}
+function crearAlertaDesdePlazo(){
+  const {resultado,plazoId,tribunal}=_plazosEstado;
+  if(!resultado)return;
+  const plazos=tribunal==='PBA'?PLAZOS_PBA:PLAZOS_NACION;
+  const p=plazos.find(x=>x.id===plazoId);
+  const fecha=resultado.toISOString().split('T')[0];
+  // Pre-fill modal alerta
+  document.getElementById('mal-titulo').value=`Vencimiento: ${p?.nombre||'Plazo procesal'}`;
+  document.getElementById('mal-fecha').value=fecha;
+  document.getElementById('mal-descripcion').value=p?.desc||'';
+  populateCausaSelect('mal-causa','');
+  document.getElementById('modal-alerta').classList.add('open');
+}
+function copiarFechaPlazo(){
+  const {resultado}=_plazosEstado;if(!resultado)return;
+  const str=resultado.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  navigator.clipboard.writeText(str).then(()=>toast('Fecha copiada: '+str,'success'));
 }
 
 // ══════════════════ ESTADÍSTICAS ══════════════════
