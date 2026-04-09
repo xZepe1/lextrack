@@ -212,6 +212,9 @@ select.filter-select:focus{outline:none;border-color:var(--gold);}
 .seg-del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:2px 5px;border-radius:4px;line-height:1;}
 .seg-del-btn:hover{background:var(--red-dim);color:var(--red);}
 
+/* ARCHIVOS DRIVE */
+.archivo-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:6px;transition:border-color .15s;}
+.archivo-item:hover{border-color:var(--border2);}
 /* CLIENTES */
 .cliente-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;}
 .cliente-card:hover{border-color:var(--border2);}
@@ -936,7 +939,8 @@ canvas{max-width:100%;}
 // ══════════════════ CONFIG ══════════════════
 const CLIENT_ID = '604855232321-hah4j4jivl6r66s18hspa91jbq22li5q.apps.googleusercontent.com';
 const SHEET_ID  = '1ZZtoSbPsGIzIGeBWNl1KwoUWpyvbzb46EV9ms2JEvoc';
-const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+const DRIVE_ROOT_FOLDER_NAME = 'LexTrack — Expedientes';
 const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas', clientes:'Clientes' };
 
 // ══════════════════ BASE DE DATOS JUZGADOS ══════════════════
@@ -2103,6 +2107,7 @@ function showCausa(causaId){
       <div class="tab" onclick="switchCausaTab('tareas')">Tareas (${tareasC.length})</div>
       <div class="tab" onclick="switchCausaTab('cautelares')">Cautelares (${cautelaresC.length})</div>
       <div class="tab" onclick="switchCausaTab('finanzas')">Honorarios</div>
+      <div class="tab" onclick="switchCausaTab('archivos')">Archivos 📎</div>
     </div>
 
     <div id="causa-tab-movimientos">
@@ -2158,6 +2163,10 @@ function showCausa(causaId){
             <button class="btn btn-danger btn-sm" onclick="deleteHonorario('${h.id}')">🗑</button>
           </div>`).join('')}
     </div>
+
+    <div id="causa-tab-archivos" style="display:none">
+      <div id="causa-archivos-content"><div style="text-align:center;padding:30px;color:var(--text3)">Cargando archivos...</div></div>
+    </div>
   `;
 
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2165,12 +2174,13 @@ function showCausa(causaId){
 }
 
 function switchCausaTab(tab){
-  ['movimientos','tareas','cautelares','finanzas'].forEach(t=>{
+  ['movimientos','tareas','cautelares','finanzas','archivos'].forEach(t=>{
     document.getElementById('causa-tab-'+t).style.display=t===tab?'block':'none';
   });
   document.querySelectorAll('#causa-tabs .tab').forEach((el,i)=>{
-    el.classList.toggle('active',['movimientos','tareas','cautelares','finanzas'][i]===tab);
+    el.classList.toggle('active',['movimientos','tareas','cautelares','finanzas','archivos'][i]===tab);
   });
+  if(tab==='archivos')loadArchivos(state.currentCausaId);
 }
 
 async function deleteCausa(causaId){
@@ -3169,6 +3179,262 @@ Observaciones: [NOTAS DEL PROFESIONAL]`},
   ];
   state.plantillas=defaults;
   writePlantillas();
+}
+
+// ══════════════════ GOOGLE DRIVE — ARCHIVOS POR CAUSA ══════════════════
+// Categorías de archivos
+const ARCHIVO_CATS = [
+  {id:'dni',        label:'DNI / Identidad',          icon:'🪪'},
+  {id:'escrito',    label:'Escritos presentados',      icon:'📄'},
+  {id:'cedula',     label:'Cédulas / Notificaciones',  icon:'📬'},
+  {id:'poder',      label:'Contratos / Poderes',       icon:'📋'},
+  {id:'prueba',     label:'Prueba documental',         icon:'🗂️'},
+  {id:'modelo',     label:'Modelos de escritos',       icon:'✍️'},
+  {id:'pericia',    label:'Pericias / Informes',       icon:'🔬'},
+  {id:'recibo',     label:'Recibos / Comprobantes',    icon:'💳'},
+  {id:'foto',       label:'Fotos / Capturas',          icon:'📷'},
+  {id:'otro',       label:'Otros',                     icon:'📁'},
+];
+
+let _driveFolderId = null;      // carpeta raíz LexTrack en Drive
+let _causaFolders = {};         // cache: causaId → folderId
+
+// ── Drive API helpers ─────────────────────────────────────────────────
+async function driveGet(path){
+  const r = await fetch('https://www.googleapis.com/drive/v3/'+path, {
+    headers:{Authorization:'Bearer '+accessToken}
+  });
+  if(!r.ok) throw new Error('Drive error '+r.status);
+  return r.json();
+}
+async function drivePost(path, body, isUpload=false){
+  const url = isUpload
+    ? 'https://www.googleapis.com/upload/drive/v3/'+path+'?uploadType=multipart'
+    : 'https://www.googleapis.com/drive/v3/'+path;
+  const r = await fetch(url, {
+    method:'POST',
+    headers:{Authorization:'Bearer '+accessToken,'Content-Type': isUpload?undefined:'application/json'},
+    body: isUpload ? body : JSON.stringify(body)
+  });
+  if(!r.ok){const t=await r.text();throw new Error('Drive error '+r.status+': '+t);}
+  return r.json();
+}
+async function drivePatch(fileId, body){
+  const r = await fetch('https://www.googleapis.com/drive/v3/files/'+fileId, {
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error('Drive PATCH error '+r.status);
+  return r.json();
+}
+async function driveDelete(fileId){
+  await fetch('https://www.googleapis.com/drive/v3/files/'+fileId+'?supportsAllDrives=true', {
+    method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
+  });
+}
+
+// ── Obtener o crear carpeta raíz LexTrack ─────────────────────────────
+async function getDriveRootFolder(){
+  if(_driveFolderId) return _driveFolderId;
+  // Buscar carpeta existente
+  const q = encodeURIComponent(`name='${DRIVE_ROOT_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const res = await driveGet(`files?q=${q}&fields=files(id,name)&spaces=drive`);
+  if(res.files&&res.files.length){_driveFolderId=res.files[0].id;return _driveFolderId;}
+  // Crear carpeta
+  const created = await drivePost('files',{name:DRIVE_ROOT_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'});
+  _driveFolderId = created.id;
+  return _driveFolderId;
+}
+
+// ── Obtener o crear carpeta de una causa ─────────────────────────────
+async function getCausaFolder(causaId){
+  if(_causaFolders[causaId]) return _causaFolders[causaId];
+  const causa = state.causas.find(c=>c.id===causaId);
+  const rootId = await getDriveRootFolder();
+  const folderName = `[${causa?.numero||causaId.slice(-6)}] ${(causa?.caratula||'Sin nombre').slice(0,60)}`;
+  // Buscar carpeta existente
+  const q = encodeURIComponent(`name='${folderName.replace(/'/g,"\\'")}' and '${rootId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const res = await driveGet(`files?q=${q}&fields=files(id,name)&spaces=drive`);
+  if(res.files&&res.files.length){_causaFolders[causaId]=res.files[0].id;return _causaFolders[causaId];}
+  // Crear carpeta
+  const created = await drivePost('files',{name:folderName,mimeType:'application/vnd.google-apps.folder',parents:[rootId]});
+  _causaFolders[causaId]=created.id;
+  return _causaFolders[causaId];
+}
+
+// ── Listar archivos de una causa ──────────────────────────────────────
+async function listarArchivosCausa(causaId){
+  try{
+    const folderId = await getCausaFolder(causaId);
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+    const res = await driveGet(`files?q=${q}&fields=files(id,name,size,mimeType,createdTime,description,webViewLink,iconLink)&orderBy=createdTime desc&spaces=drive`);
+    return res.files||[];
+  }catch(e){console.error('Error listando archivos:',e);return[];}
+}
+
+// ── Subir archivo ─────────────────────────────────────────────────────
+async function subirArchivo(causaId, file, categoria){
+  const folderId = await getCausaFolder(causaId);
+  // Nombre con prefijo de categoría
+  const catInfo = ARCHIVO_CATS.find(c=>c.id===categoria)||ARCHIVO_CATS[ARCHIVO_CATS.length-1];
+  const nombreFinal = `[${catInfo.label}] ${file.name}`;
+  const metadata = {name:nombreFinal, description:categoria, parents:[folderId]};
+  // Multipart upload
+  const boundary = '-------314159265358979323846';
+  const delimiter = '\r\n--'+boundary+'\r\n';
+  const closeDelim = '\r\n--'+boundary+'--';
+  const metaStr = JSON.stringify(metadata);
+  const fileData = await file.arrayBuffer();
+  const body = new Blob([
+    delimiter,'Content-Type: application/json\r\n\r\n',metaStr,
+    delimiter,`Content-Type: ${file.type||'application/octet-stream'}\r\n\r\n`,
+    fileData,closeDelim
+  ],{type:'multipart/related; boundary="'+boundary+'"'});
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,mimeType,createdTime,description,webViewLink', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+accessToken,'Content-Type':'multipart/related; boundary="'+boundary+'"'},
+    body
+  });
+  if(!r.ok){const t=await r.text();throw new Error('Upload error '+r.status+': '+t);}
+  return r.json();
+}
+
+// ── Render sección archivos ───────────────────────────────────────────
+async function loadArchivos(causaId){
+  const container = document.getElementById('causa-archivos-content');
+  if(!container)return;
+  container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3)"><div class="spinner" style="margin:0 auto 10px"></div>Conectando con Google Drive...</div>`;
+  try{
+    const archivos = await listarArchivosCausa(causaId);
+    renderArchivos(causaId, archivos);
+  }catch(e){
+    container.innerHTML=`<div class="card" style="text-align:center;padding:24px;color:var(--red)">
+      <div style="font-size:20px;margin-bottom:8px">⚠️</div>
+      <div style="font-weight:600;margin-bottom:4px">Error al conectar con Google Drive</div>
+      <div style="font-size:12px;color:var(--text3)">${e.message}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px">Si es la primera vez, puede ser necesario cerrar sesión y volver a ingresar para autorizar el acceso a Drive.</div>
+    </div>`;
+  }
+}
+
+function renderArchivos(causaId, archivos){
+  const container = document.getElementById('causa-archivos-content');
+  if(!container)return;
+  // Agrupar por categoría
+  const grupos = {};
+  ARCHIVO_CATS.forEach(c=>{grupos[c.id]=[];});
+  archivos.forEach(f=>{
+    const cat = f.description||'otro';
+    if(!grupos[cat])grupos[cat]=[];
+    grupos[cat].push(f);
+  });
+  const tieneArchivos = archivos.length>0;
+
+  container.innerHTML=`
+    <!-- Upload zone -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:13px;font-weight:600">Subir archivo</div>
+        <div style="font-size:11px;color:var(--text3)">Se guardan en Google Drive · Carpeta: LexTrack — Expedientes</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:160px">
+          <label class="form-label">Categoría</label>
+          <select class="form-select" id="archivo-cat-sel">
+            ${ARCHIVO_CATS.map(c=>`<option value="${c.id}">${c.icon} ${c.label}</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:2;min-width:220px">
+          <label class="form-label">Archivo</label>
+          <input type="file" id="archivo-file-input" class="form-input" style="padding:6px;cursor:pointer" multiple>
+        </div>
+        <button class="btn btn-primary" onclick="handleSubirArchivo('${causaId}')" id="btn-subir-archivo">⬆ Subir</button>
+      </div>
+      <div id="archivo-upload-status" style="margin-top:8px;font-size:12px;display:none"></div>
+    </div>
+
+    <!-- Lista agrupada -->
+    ${tieneArchivos?`
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">📂 ${archivos.length} archivo${archivos.length!==1?'s':''} · <a href="#" onclick="abrirCarpetaDrive('${causaId}')" style="color:var(--accent)">Ver en Drive ↗</a></div>
+      ${ARCHIVO_CATS.filter(c=>grupos[c.id]&&grupos[c.id].length>0).map(cat=>`
+        <div class="section-title" style="margin-bottom:8px;margin-top:16px">${cat.icon} ${cat.label}</div>
+        ${grupos[cat.id].map(f=>archivoItemHTML(f,causaId)).join('')}
+      `).join('')}
+    `:`
+      <div class="card" style="text-align:center;padding:32px;color:var(--text3)">
+        <div style="font-size:32px;margin-bottom:10px">📎</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px">Sin archivos cargados</div>
+        <div style="font-size:12px">Subí el primer archivo usando el formulario de arriba.</div>
+      </div>
+    `}
+  `;
+}
+
+function archivoItemHTML(f, causaId){
+  const ext = f.name.split('.').pop().toLowerCase();
+  const isImg = ['jpg','jpeg','png','gif','webp','heic'].includes(ext);
+  const isPdf = ext==='pdf';
+  const icon = isPdf?'📕':isImg?'🖼️':ext==='docx'||ext==='doc'?'📝':ext==='xlsx'||ext==='xls'?'📊':'📎';
+  const size = f.size?`${Math.round(f.size/1024)}KB`:'—';
+  const fecha = f.createdTime?new Date(f.createdTime).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+  // Limpiar nombre quitando prefijo de categoría
+  const displayName = f.name.replace(/^\[[^\]]+\]\s*/,'');
+  return`<div class="archivo-item">
+    <div style="font-size:20px;flex-shrink:0">${icon}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${displayName}">${displayName}</div>
+      <div style="font-size:11px;color:var(--text3)">${fecha} · ${size}</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <a href="${f.webViewLink}" target="_blank" class="btn btn-ghost btn-sm" title="Abrir en Drive">👁</a>
+      <button class="btn btn-danger btn-sm" onclick="eliminarArchivo('${f.id}','${causaId}')" title="Eliminar">🗑</button>
+    </div>
+  </div>`;
+}
+
+async function handleSubirArchivo(causaId){
+  const fileInput = document.getElementById('archivo-file-input');
+  const cat = document.getElementById('archivo-cat-sel').value;
+  const files = fileInput.files;
+  if(!files||!files.length){alert('Seleccioná al menos un archivo.');return;}
+  const btn = document.getElementById('btn-subir-archivo');
+  const status = document.getElementById('archivo-upload-status');
+  btn.disabled=true;status.style.display='';
+  let ok=0,err=0;
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    status.innerHTML=`⬆ Subiendo ${i+1}/${files.length}: <strong>${f.name}</strong>...`;
+    status.style.color='var(--text2)';
+    try{
+      await subirArchivo(causaId,f,cat);ok++;
+    }catch(e){
+      err++;status.innerHTML=`❌ Error al subir ${f.name}: ${e.message}`;status.style.color='var(--red)';
+    }
+  }
+  btn.disabled=false;
+  fileInput.value='';
+  if(ok>0){
+    status.innerHTML=`✅ ${ok} archivo${ok!==1?'s':''} subido${ok!==1?'s':''} correctamente${err>0?` · ❌ ${err} con error`:''}`;
+    status.style.color='var(--green)';
+    await loadArchivos(causaId);
+  }
+}
+
+async function eliminarArchivo(fileId, causaId){
+  if(!confirm('¿Eliminar este archivo de Drive? Esta acción no se puede deshacer.'))return;
+  try{
+    await driveDelete(fileId);
+    toast('Archivo eliminado','success');
+    await loadArchivos(causaId);
+  }catch(e){toast('Error al eliminar: '+e.message,'error');}
+}
+
+async function abrirCarpetaDrive(causaId){
+  try{
+    const folderId = await getCausaFolder(causaId);
+    window.open('https://drive.google.com/drive/folders/'+folderId,'_blank');
+  }catch(e){toast('Error al abrir Drive','error');}
 }
 
 // ══════════════════ CLIENTES ══════════════════
