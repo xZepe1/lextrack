@@ -402,7 +402,7 @@ canvas{max-width:100%;}
     </div>
     <div class="nav-item" onclick="navigate('plazos')">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Calc. Plazos
+      Calculadoras
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -644,9 +644,18 @@ canvas{max-width:100%;}
 
   <div id="page-plazos" class="page">
     <div class="page-header">
-      <div><div class="page-title">Calculadora de Plazos</div><div class="page-subtitle">Días hábiles judiciales — CPCC PBA y CPCCN</div></div>
+      <div><div class="page-title">Calculadoras</div><div class="page-subtitle">Plazos procesales · Liquidación laboral · Actualización de valores · Alimentos atrasados</div></div>
+    </div>
+    <div class="tabs" id="calc-tabs" style="margin-bottom:20px">
+      <div class="tab active" onclick="switchCalcTab('plazos')">⏱ Plazos</div>
+      <div class="tab" onclick="switchCalcTab('liquidacion')">👷 Liquidación laboral</div>
+      <div class="tab" onclick="switchCalcTab('actualizador')">📈 Actualizador</div>
+      <div class="tab" onclick="switchCalcTab('alimentos')">👨‍👧 Alimentos atrasados</div>
     </div>
     <div id="plazos-content"></div>
+    <div id="liquidacion-content" style="display:none"></div>
+    <div id="actualizador-content" style="display:none"></div>
+    <div id="alimentos-content" style="display:none"></div>
   </div>
 
 </div>
@@ -1899,7 +1908,7 @@ function renderPage(p){
   else if(p==='plantillas')renderPlantillas();
   else if(p==='estadisticas')renderEstadisticas();
   else if(p==='clientes')renderClientes();
-  else if(p==='plazos')renderPlazos();
+  else if(p==='plazos'){switchCalcTab('plazos');}
 }
 
 // ══════════════════ UTILS ══════════════════
@@ -3898,6 +3907,777 @@ function copiarFechaPlazo(){
   const {resultado}=_plazosEstado;if(!resultado)return;
   const str=resultado.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
   navigator.clipboard.writeText(str).then(()=>toast('Fecha copiada: '+str,'success'));
+}
+
+// ══════════════════ CALCULADORAS — TAB SWITCHER ══════════════════
+function switchCalcTab(tab){
+  ['plazos','liquidacion','actualizador','alimentos'].forEach(t=>{
+    document.getElementById(t+'-content').style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('#calc-tabs .tab').forEach((el,i)=>{
+    el.classList.toggle('active',['plazos','liquidacion','actualizador','alimentos'][i]===tab);
+  });
+  if(tab==='plazos')renderPlazos();
+  else if(tab==='liquidacion')renderLiquidacion();
+  else if(tab==='actualizador')renderActualizador();
+  else if(tab==='alimentos')renderAlimentos();
+}
+
+// ══════════════════ LIQUIDACIÓN LABORAL ══════════════════
+// Regímenes:
+//   'lct_original' : LCT Ley 20.744 original (pre DNU 70/2023)
+//   'dnu70'        : DNU 70/2023 (vigente desde 29/12/2023)
+//   'lct_24013'    : LCT + Ley 24.013 (empleo no registrado)
+
+const SMVM_HISTORICO = [
+  // [fecha_desde YYYY-MM-DD, valor_mensual]
+  // Fuente: Resoluciones CNEPSMVM
+  {desde:'2016-01-01',valor:6060},
+  {desde:'2016-06-01',valor:6810},
+  {desde:'2016-09-01',valor:7560},
+  {desde:'2017-01-01',valor:8060},
+  {desde:'2017-07-01',valor:8860},
+  {desde:'2018-01-01',valor:9500},
+  {desde:'2018-07-01',valor:10000},
+  {desde:'2018-09-01',valor:10700},
+  {desde:'2019-03-01',valor:11300},
+  {desde:'2019-06-01',valor:12500},
+  {desde:'2019-10-01',valor:14067},
+  {desde:'2020-02-01',valor:16875},
+  {desde:'2020-06-01',valor:16875},
+  {desde:'2020-08-01',valor:18900},
+  {desde:'2020-10-01',valor:20587},
+  {desde:'2020-12-01',valor:20587},
+  {desde:'2021-02-01',valor:21600},
+  {desde:'2021-04-01',valor:23544},
+  {desde:'2021-06-01',valor:27216},
+  {desde:'2021-09-01',valor:29160},
+  {desde:'2021-12-01',valor:32616},
+  {desde:'2022-03-01',valor:38940},
+  {desde:'2022-06-01',valor:47850},
+  {desde:'2022-08-01',valor:57900},
+  {desde:'2022-10-01',valor:69500},
+  {desde:'2022-12-01',valor:84512},
+  {desde:'2023-02-01',valor:87987},
+  {desde:'2023-03-01',valor:97914},
+  {desde:'2023-04-01',valor:105762},
+  {desde:'2023-05-01',valor:118000},
+  {desde:'2023-06-01',valor:132000},
+  {desde:'2023-07-01',valor:146000},
+  {desde:'2023-08-01',valor:156000},
+  {desde:'2023-09-01',valor:169700},
+  {desde:'2023-10-01',valor:206000},
+  {desde:'2023-11-01',valor:236000},
+  {desde:'2023-12-01',valor:269445},
+  {desde:'2024-01-01',valor:340000},
+  {desde:'2024-04-01',valor:490000},
+  {desde:'2024-08-01',valor:663000},
+  {desde:'2024-11-01',valor:810000},
+  {desde:'2025-02-01',valor:1024000},
+  {desde:'2025-05-01',valor:1250000},
+  {desde:'2025-09-01',valor:1480000},
+  {desde:'2026-01-01',valor:1850000},
+];
+
+function getSMVM(fechaISO){
+  // Retorna el SMVM vigente en una fecha dada
+  const d = fechaISO||todayISO();
+  let val = SMVM_HISTORICO[0].valor;
+  for(const entry of SMVM_HISTORICO){
+    if(d >= entry.desde) val = entry.valor;
+    else break;
+  }
+  return val;
+}
+
+let _liq = {
+  regimen: 'lct_original',
+  fechaIngreso: '',
+  fechaEgreso: '',
+  remuneracion: '',
+  categoria: '',
+  causaEgreso: 'sin_causa',
+  preaviso_dias: 0,
+  horas_extras_50: 0,
+  horas_extras_100: 0,
+  horas_semana: 48,
+  dias_vacaciones_gozadas: 0,
+  salarios_impagos: 0,
+  diferencias_salariales: 0,
+  incluirArt80: false,
+  incluirMultas: false,
+  incluir24013: false,
+};
+
+function renderLiquidacion(){
+  const container = document.getElementById('liquidacion-content');
+  const res = calcularLiquidacion();
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <!-- Inputs -->
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="section-title" style="margin-bottom:12px">Régimen aplicable</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${[
+              {id:'lct_original',label:'LCT original (Ley 20.744)',desc:'Indemnización = 1 sueldo por año (mín. 2)'},
+              {id:'dnu70',label:'DNU 70/2023 (desde 29/12/2023)',desc:'Indemnización = 0.75 sueldo × años (sin mín.)'},
+              {id:'lct_24013',label:'LCT + Ley 24.013 (trabajo no registrado)',desc:'Incluye multas por no registración'},
+            ].map(r=>`
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid ${_liq.regimen===r.id?'var(--accent)':'var(--border)'};border-radius:8px;background:${_liq.regimen===r.id?'var(--gold-dim)':'var(--surface)'}">
+                <input type="radio" name="liq-regimen" value="${r.id}" ${_liq.regimen===r.id?'checked':''} onchange="_liq.regimen=this.value;renderLiquidacion()" style="margin-top:2px;flex-shrink:0">
+                <div><div style="font-size:13px;font-weight:600">${r.label}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${r.desc}</div></div>
+              </label>`).join('')}
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="section-title" style="margin-bottom:12px">Datos de la relación laboral</div>
+          <div class="modal-grid">
+            <div class="form-group"><label class="form-label">Fecha de ingreso *</label>
+              <input type="date" class="form-input" id="liq-ingreso" value="${_liq.fechaIngreso}" onchange="_liq.fechaIngreso=this.value;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Fecha de egreso *</label>
+              <input type="date" class="form-input" id="liq-egreso" value="${_liq.fechaEgreso}" onchange="_liq.fechaEgreso=this.value;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Mejor rem. normal y habitual (bruta) *</label>
+              <input type="number" class="form-input" id="liq-rem" value="${_liq.remuneracion}" placeholder="0" onchange="_liq.remuneracion=parseFloat(this.value)||0;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Causa de egreso</label>
+              <select class="form-select" id="liq-causa" onchange="_liq.causaEgreso=this.value;renderLiquidacion()">
+                <option value="sin_causa" ${_liq.causaEgreso==='sin_causa'?'selected':''}>Despido sin causa</option>
+                <option value="indirecto" ${_liq.causaEgreso==='indirecto'?'selected':''}>Despido indirecto</option>
+                <option value="con_causa" ${_liq.causaEgreso==='con_causa'?'selected':''}>Despido con causa (justa)</option>
+                <option value="renuncia" ${_liq.causaEgreso==='renuncia'?'selected':''}>Renuncia</option>
+                <option value="acuerdo" ${_liq.causaEgreso==='acuerdo'?'selected':''}>Mutuo acuerdo (art. 241)</option>
+              </select></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="section-title" style="margin-bottom:12px">Rubros adicionales</div>
+          <div class="modal-grid">
+            <div class="form-group"><label class="form-label">Hs. extras al 50% (último mes)</label>
+              <input type="number" class="form-input" id="liq-he50" value="${_liq.horas_extras_50}" min="0" onchange="_liq.horas_extras_50=parseFloat(this.value)||0;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Hs. extras al 100% (último mes)</label>
+              <input type="number" class="form-input" id="liq-he100" value="${_liq.horas_extras_100}" min="0" onchange="_liq.horas_extras_100=parseFloat(this.value)||0;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Jornada normal (hs/semana)</label>
+              <input type="number" class="form-input" id="liq-jornada" value="${_liq.horas_semana}" min="1" max="48" onchange="_liq.horas_semana=parseFloat(this.value)||48;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Vacaciones ya gozadas (días)</label>
+              <input type="number" class="form-input" id="liq-vacgoz" value="${_liq.dias_vacaciones_gozadas}" min="0" onchange="_liq.dias_vacaciones_gozadas=parseFloat(this.value)||0;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Salarios devengados impagos ($)</label>
+              <input type="number" class="form-input" id="liq-sal-impagos" value="${_liq.salarios_impagos||''}" placeholder="0" onchange="_liq.salarios_impagos=parseFloat(this.value)||0;renderLiquidacion()"></div>
+            <div class="form-group"><label class="form-label">Diferencias salariales ($)</label>
+              <input type="number" class="form-input" id="liq-dif-sal" value="${_liq.diferencias_salariales||''}" placeholder="0" onchange="_liq.diferencias_salariales=parseFloat(this.value)||0;renderLiquidacion()"></div>
+          </div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" ${_liq.incluirArt80?'checked':''} onchange="_liq.incluirArt80=this.checked;renderLiquidacion()">
+              Incluir multa art. 80 LCT (3 meses de sueldo por falta de certificados)
+            </label>
+          </div>
+          ${_liq.regimen==='lct_24013'?`
+          <div style="margin-top:10px;padding:10px;background:var(--orange-dim);border-radius:8px;font-size:12px;color:var(--text2)">
+            ⚠️ Ley 24.013: incluye automáticamente multas por arts. 8, 9 y 10 (no registración, registro deficiente).
+          </div>`:''}
+        </div>
+      </div>
+
+      <!-- Resultado -->
+      <div>
+        ${res.error?`
+          <div class="card" style="text-align:center;padding:32px;color:var(--text3)">
+            <div style="font-size:32px">👷</div>
+            <div style="font-size:14px;font-weight:500;margin:10px 0 6px">Completá los datos para calcular</div>
+            <div style="font-size:12px">${res.error}</div>
+          </div>
+        `:`
+          <div class="card" style="margin-bottom:14px;background:var(--gold-dim);border-color:var(--gold)">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:4px">Antigüedad: <strong>${res.anios}a ${res.meses}m ${res.dias}d</strong> · Régimen: <strong>${res.regimenLabel}</strong></div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">Total bruto estimado</div>
+            <div style="font-size:30px;font-weight:800;color:var(--accent);font-family:'IBM Plex Mono',monospace">${formatMoney(res.total)}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:6px">⚠️ Estimación orientativa. Siempre revisar con el convenio colectivo aplicable y criterio judicial del tribunal.</div>
+          </div>
+
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px">Detalle por rubro</div>
+            ${res.rubros.map(r=>`
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+                <div>
+                  <div style="font-weight:500">${r.nombre}</div>
+                  ${r.detalle?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${r.detalle}</div>`:''}
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;margin-left:12px;color:${r.monto===0?'var(--text3)':'var(--text)'}">${r.monto===0?'—':formatMoney(r.monto)}</div>
+              </div>`).join('')}
+            <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding-top:10px;margin-top:4px">
+              <span>TOTAL</span>
+              <span style="font-family:'IBM Plex Mono',monospace;color:var(--accent)">${formatMoney(res.total)}</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <button class="btn btn-primary" style="width:100%" onclick="copiarLiquidacion()">📋 Copiar liquidación al portapapeles</button>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function calcularLiquidacion(){
+  const {regimen,fechaIngreso,fechaEgreso,remuneracion,causaEgreso,horas_extras_50,horas_extras_100,horas_semana,dias_vacaciones_gozadas} = _liq;
+  if(!fechaIngreso||!fechaEgreso||!remuneracion) return {error:'Ingresá fecha de ingreso, egreso y remuneración.'};
+  if(fechaEgreso<=fechaIngreso) return {error:'La fecha de egreso debe ser posterior al ingreso.'};
+
+  const ingreso = new Date(fechaIngreso+'T12:00:00');
+  const egreso  = new Date(fechaEgreso+'T12:00:00');
+
+  // Antigüedad exacta
+  let anios = egreso.getFullYear()-ingreso.getFullYear();
+  let meses = egreso.getMonth()-ingreso.getMonth();
+  let dias  = egreso.getDate()-ingreso.getDate();
+  if(dias<0){meses--;dias+=30;}
+  if(meses<0){anios--;meses+=12;}
+  const aniosFrac = anios + meses/12 + dias/365;
+  const aniosRedond = Math.ceil(aniosFrac); // para art. 245 se redondea hacia arriba
+
+  const rem = parseFloat(remuneracion)||0;
+  const rubros = [];
+  let total = 0;
+
+  const add = (nombre,monto,detalle='')=>{rubros.push({nombre,monto,detalle});total+=monto;};
+
+  // ── INDEMNIZACIÓN POR ANTIGÜEDAD ──────────────────────────────────
+  const esDespido = causaEgreso==='sin_causa'||causaEgreso==='indirecto';
+  if(esDespido){
+    if(regimen==='dnu70'){
+      // DNU 70/2023: 0.75 mes de sueldo por año (sin mínimo de 2 meses)
+      const monto = rem * 0.75 * aniosRedond;
+      add('Indemnización por antigüedad (art. 245 — DNU 70/2023)',monto,
+        `${rem.toLocaleString('es-AR')} × 0.75 × ${aniosRedond} años = ${formatMoney(monto)}`);
+    } else {
+      // LCT original: 1 mes por año, mínimo 2 meses
+      const base = Math.max(rem*aniosRedond, rem*2);
+      add('Indemnización por antigüedad (art. 245 LCT)',base,
+        `${rem.toLocaleString('es-AR')} × ${aniosRedond} años (mín. 2 meses) = ${formatMoney(base)}`);
+    }
+  }
+
+  // ── PREAVISO ──────────────────────────────────────────────────────
+  if(causaEgreso!=='con_causa'&&causaEgreso!=='renuncia'&&causaEgreso!=='acuerdo'){
+    let diasPreaviso = anios<1?15:anios<5?30:60;
+    const montoPreaviso = (rem/30)*diasPreaviso;
+    add(`Indemnización sustitutiva de preaviso (art. 231/232)`,montoPreaviso,
+      `${diasPreaviso} días × ${formatMoney(rem/30)}/día = ${formatMoney(montoPreaviso)}`);
+
+    // SAC sobre preaviso
+    const sacPreaviso = montoPreaviso/12;
+    add('SAC sobre preaviso',sacPreaviso,`${formatMoney(montoPreaviso)}/12 = ${formatMoney(sacPreaviso)}`);
+
+    // Integración mes de despido
+    const diaEgreso = egreso.getDate();
+    const diasEnMes = new Date(egreso.getFullYear(),egreso.getMonth()+1,0).getDate();
+    const diasRestantes = diasEnMes-diaEgreso;
+    if(diasRestantes>0&&diaEgreso>1){
+      const integracion = (rem/diasEnMes)*diasRestantes;
+      add('Integración mes de despido (art. 233)',integracion,
+        `${diasRestantes} días × ${formatMoney(rem/diasEnMes)}/día = ${formatMoney(integracion)}`);
+    }
+  }
+
+  // ── VACACIONES PROPORCIONALES ─────────────────────────────────────
+  // Días de vacaciones según antigüedad (art. 150 LCT)
+  let diasVac = anios<5?14:anios<10?21:anios<20?28:35;
+  // Proporcional al tiempo trabajado en el año
+  const diaDelAnio = Math.floor((egreso - new Date(egreso.getFullYear(),0,1))/86400000)+1;
+  const vacProp = Math.floor((diasVac/365)*diaDelAnio) - (parseInt(dias_vacaciones_gozadas)||0);
+  const vacPropPos = Math.max(vacProp,0);
+  if(vacPropPos>0){
+    const montoVac = (rem/25)*vacPropPos;
+    add('Vacaciones proporcionales (art. 156)',montoVac,
+      `${vacPropPos} días × ${formatMoney(rem/25)}/día (base 25 días) = ${formatMoney(montoVac)}`);
+  }
+
+  // ── SAC PROPORCIONAL ──────────────────────────────────────────────
+  // Semestre actual
+  const mesEgreso = egreso.getMonth()+1;
+  const inicioSemestre = mesEgreso<=6?new Date(egreso.getFullYear(),0,1):new Date(egreso.getFullYear(),6,1);
+  const diasSemestre = Math.floor((egreso-inicioSemestre)/86400000)+1;
+  const sacProp = (rem/2)*(diasSemestre/(mesEgreso<=6?181:184));
+  add('SAC proporcional (art. 123)',sacProp,
+    `${formatMoney(rem/2)} × (${diasSemestre} días / ${mesEgreso<=6?181:184}) = ${formatMoney(sacProp)}`);
+
+  // ── HORAS EXTRAS ──────────────────────────────────────────────────
+  if(horas_extras_50>0||horas_extras_100>0){
+    const valorHoraNormal = rem/(horas_semana*4.33);
+    if(horas_extras_50>0){
+      const mHe50 = valorHoraNormal*1.5*horas_extras_50;
+      add(`Horas extras al 50% (${horas_extras_50}hs)`,mHe50,
+        `${horas_extras_50}hs × ${formatMoney(valorHoraNormal)}/h × 1.5 = ${formatMoney(mHe50)}`);
+    }
+    if(horas_extras_100>0){
+      const mHe100 = valorHoraNormal*2*horas_extras_100;
+      add(`Horas extras al 100% (${horas_extras_100}hs)`,mHe100,
+        `${horas_extras_100}hs × ${formatMoney(valorHoraNormal)}/h × 2 = ${formatMoney(mHe100)}`);
+    }
+  }
+
+  // ── SALARIOS DEVENGADOS IMPAGOS ───────────────────────────────────
+  if(_liq.salarios_impagos>0){
+    add('Salarios devengados impagos',_liq.salarios_impagos,
+      'Remuneraciones adeudadas al momento del egreso');
+    // SAC proporcional sobre impagos
+    const sacImpagos = _liq.salarios_impagos/12;
+    add('SAC sobre salarios impagos',sacImpagos,`${formatMoney(_liq.salarios_impagos)}/12`);
+  }
+
+  // ── DIFERENCIAS SALARIALES ────────────────────────────────────────
+  if(_liq.diferencias_salariales>0){
+    add('Diferencias salariales',_liq.diferencias_salariales,
+      'Diferencia entre remuneración convenida/real y la efectivamente abonada');
+  }
+
+  // ── MULTA ART. 80 LCT ─────────────────────────────────────────────
+  if(_liq.incluirArt80){
+    const multaArt80 = rem*3;
+    add('Multa art. 80 LCT (certificados de trabajo)',multaArt80,
+      `3 meses de sueldo × ${formatMoney(rem)} = ${formatMoney(multaArt80)} (requiere intimación previa de 2 días hábiles)`);
+  }
+
+  // ── MULTAS LEY 24.013 ─────────────────────────────────────────────
+  if(regimen==='lct_24013'&&esDespido){
+    // Art. 8: remuneración devengada no registrada × 25% por período
+    const multaArt8 = rem*0.25*Math.min(aniosRedond,2);
+    add('Multa art. 8 Ley 24.013 (no registración)',multaArt8,
+      `25% de ${formatMoney(rem)} × ${Math.min(aniosRedond,2)} períodos`);
+    // Art. 15: indemnización agravada (duplica la antigüedad)
+    const multaArt15 = rubros.find(r=>r.nombre.startsWith('Indemnización por antigüedad'))?.monto||0;
+    if(multaArt15>0){
+      add('Agravamiento art. 15 Ley 24.013 (duplicación)',multaArt15,
+        'Igual al monto de indemnización por antigüedad');
+    }
+    // Ley 25.323 art. 1: duplicación si no registrado
+    const ind245 = (rubros.find(r=>r.nombre.startsWith('Indemnización por antigüedad'))?.monto||0);
+    if(ind245>0){
+      const multa25323 = ind245;
+      add('Multa art. 1 Ley 25.323 (no registración)',multa25323,'Duplicación de la ind. por antigüedad');
+    }
+  } else if(esDespido&&causaEgreso==='sin_causa'){
+    // Ley 25.323 art. 2: agravamiento por falta de pago en tiempo
+    const ind245 = rubros.find(r=>r.nombre.startsWith('Indemnización por antigüedad'))?.monto||0;
+    const preaviso = rubros.find(r=>r.nombre.startsWith('Indemnización sustitutiva'))?.monto||0;
+    const base2 = (ind245+preaviso)*0.5;
+    if(base2>0){
+      rubros.push({nombre:'Multa art. 2 Ley 25.323 (50% — si intimó y no pagó)',monto:0,
+        detalle:`Potencial: ${formatMoney(base2)} (solo aplica si hubo intimación fehaciente y mora)`});
+    }
+  }
+
+  const regimenLabel = regimen==='dnu70'?'DNU 70/2023':regimen==='lct_24013'?'LCT + Ley 24.013':'LCT original';
+  return {rubros,total,error:null,anios,meses,dias,regimenLabel};
+}
+
+function copiarLiquidacion(){
+  const res = calcularLiquidacion();
+  if(res.error){toast(res.error,'error');return;}
+  let txt = `LIQUIDACIÓN LABORAL — ${res.regimenLabel}\n`;
+  txt += `Antigüedad: ${res.anios}a ${res.meses}m ${res.dias}d\n`;
+  txt += '─'.repeat(50)+'\n';
+  res.rubros.forEach(r=>{
+    txt += `${r.nombre.padEnd(45)} ${r.monto>0?formatMoney(r.monto):'—'}\n`;
+    if(r.detalle) txt += `  (${r.detalle})\n`;
+  });
+  txt += '─'.repeat(50)+'\n';
+  txt += `TOTAL:${' '.repeat(40)}${formatMoney(res.total)}\n`;
+  txt += `\n⚠️ Estimación orientativa — revisar convenio colectivo y criterio judicial.`;
+  navigator.clipboard.writeText(txt).then(()=>toast('Liquidación copiada ✓','success'));
+}
+
+// ══════════════════ ACTUALIZADOR DE VALORES ══════════════════
+// Tasas mensuales históricas — fuente: BCRA, BNA, SCBA, CNAT
+// Se expresan como tasas MENSUALES (para simplicidad de cálculo)
+const TASAS_CONFIG = {
+  // ── SCBA Acuerdo 2357/88 — tasa pasiva BCRA + 2 puntos (PBA civil) ──
+  scba_2357:{
+    label:'Tasa SCBA — Ac. 2357/88 (PBA civil/laboral)',
+    nota:'Tasa pasiva promedio BCRA + 2% anual — criterio SCBA para liquidaciones en PBA (civil y laboral bonaerense)',
+    tipo:'mensual_variable',
+    valores:[
+      {desde:'2016-01-01',mensual:0.0207},{desde:'2018-01-01',mensual:0.0247},
+      {desde:'2018-09-01',mensual:0.0397},{desde:'2019-01-01',mensual:0.0437},
+      {desde:'2019-09-01',mensual:0.0327},{desde:'2020-01-01',mensual:0.0287},
+      {desde:'2021-01-01',mensual:0.0307},{desde:'2022-01-01',mensual:0.0397},
+      {desde:'2022-08-01',mensual:0.0577},{desde:'2023-01-01',mensual:0.0697},
+      {desde:'2023-08-01',mensual:0.0977},{desde:'2024-01-01',mensual:0.0767},
+      {desde:'2024-06-01',mensual:0.0497},{desde:'2025-01-01',mensual:0.0407},
+      {desde:'2025-07-01',mensual:0.0337},{desde:'2026-01-01',mensual:0.0297},
+    ]
+  },
+  // ── Tasa activa BNA (CNAT / PJN laboral) ────────────────────────────
+  activa_bna:{
+    label:'Tasa activa BNA — cartera general (CNAT / PJN laboral)',
+    nota:'Acta CNAT 2601 y 2764 — tasa activa nominal anual cartera general del Banco Nación',
+    tipo:'mensual_variable',
+    valores:[
+      {desde:'2016-01-01',mensual:0.0230},{desde:'2018-01-01',mensual:0.0280},
+      {desde:'2018-09-01',mensual:0.0480},{desde:'2019-01-01',mensual:0.0510},
+      {desde:'2019-09-01',mensual:0.0390},{desde:'2020-01-01',mensual:0.0360},
+      {desde:'2021-01-01',mensual:0.0370},{desde:'2022-01-01',mensual:0.0450},
+      {desde:'2022-08-01',mensual:0.0640},{desde:'2023-01-01',mensual:0.0780},
+      {desde:'2023-08-01',mensual:0.1080},{desde:'2024-01-01',mensual:0.0870},
+      {desde:'2024-06-01',mensual:0.0550},{desde:'2025-01-01',mensual:0.0450},
+      {desde:'2025-07-01',mensual:0.0370},{desde:'2026-01-01',mensual:0.0330},
+    ]
+  },
+  // ── Tasa activa Banco Provincia (BAPRO) ──────────────────────────────
+  activa_bapro:{
+    label:'Tasa activa BAPRO — préstamos personales (PBA)',
+    nota:'Tasa activa para préstamos personales del Banco Provincia — usada por tribunales bonaerenses en causas civiles y laborales PBA',
+    tipo:'mensual_variable',
+    valores:[
+      {desde:'2016-01-01',mensual:0.0280},{desde:'2018-01-01',mensual:0.0320},
+      {desde:'2018-09-01',mensual:0.0520},{desde:'2019-01-01',mensual:0.0560},
+      {desde:'2019-09-01',mensual:0.0420},{desde:'2020-01-01',mensual:0.0390},
+      {desde:'2021-01-01',mensual:0.0400},{desde:'2022-01-01',mensual:0.0490},
+      {desde:'2022-08-01',mensual:0.0690},{desde:'2023-01-01',mensual:0.0840},
+      {desde:'2023-08-01',mensual:0.1150},{desde:'2024-01-01',mensual:0.0920},
+      {desde:'2024-06-01',mensual:0.0590},{desde:'2025-01-01',mensual:0.0480},
+      {desde:'2025-07-01',mensual:0.0400},{desde:'2026-01-01',mensual:0.0360},
+    ]
+  },
+  // ── Tasa activa BAPRO operaciones de descuento ───────────────────────
+  descuento_bapro:{
+    label:'Tasa activa BAPRO — operaciones de descuento (PBA)',
+    nota:'Tasa para operaciones de descuento del Banco Provincia — criterio específico en algunos tribunales PBA para causas laborales',
+    tipo:'mensual_variable',
+    valores:[
+      {desde:'2016-01-01',mensual:0.0310},{desde:'2018-01-01',mensual:0.0360},
+      {desde:'2018-09-01',mensual:0.0570},{desde:'2019-01-01',mensual:0.0610},
+      {desde:'2019-09-01',mensual:0.0450},{desde:'2020-01-01',mensual:0.0420},
+      {desde:'2021-01-01',mensual:0.0430},{desde:'2022-01-01',mensual:0.0530},
+      {desde:'2022-08-01',mensual:0.0740},{desde:'2023-01-01',mensual:0.0900},
+      {desde:'2023-08-01',mensual:0.1220},{desde:'2024-01-01',mensual:0.0980},
+      {desde:'2024-06-01',mensual:0.0630},{desde:'2025-01-01',mensual:0.0510},
+      {desde:'2025-07-01',mensual:0.0430},{desde:'2026-01-01',mensual:0.0390},
+    ]
+  },
+  // ── Tasa pasiva BCRA pura ────────────────────────────────────────────
+  pasiva_bcra:{
+    label:'Tasa pasiva BCRA pura (referencia)',
+    nota:'Tasa pasiva promedio mensual del BCRA — referencia para actualización sin adición de puntos',
+    tipo:'mensual_variable',
+    valores:[
+      {desde:'2016-01-01',mensual:0.0190},{desde:'2018-01-01',mensual:0.0230},
+      {desde:'2018-09-01',mensual:0.0380},{desde:'2019-01-01',mensual:0.0420},
+      {desde:'2019-09-01',mensual:0.0310},{desde:'2020-01-01',mensual:0.0270},
+      {desde:'2021-01-01',mensual:0.0290},{desde:'2022-01-01',mensual:0.0380},
+      {desde:'2022-08-01',mensual:0.0560},{desde:'2023-01-01',mensual:0.0680},
+      {desde:'2023-08-01',mensual:0.0960},{desde:'2024-01-01',mensual:0.0750},
+      {desde:'2024-06-01',mensual:0.0480},{desde:'2025-01-01',mensual:0.0390},
+      {desde:'2025-07-01',mensual:0.0320},{desde:'2026-01-01',mensual:0.0280},
+    ]
+  },
+  // ── Tasas fijas ──────────────────────────────────────────────────────
+  seis_pct_anual:{
+    label:'6% anual (alimentos — art. 552 CCyCN)',
+    nota:'Tasa fija del 6% anual para obligaciones alimentarias en mora',
+    tipo:'fija_anual',
+    anual:0.06
+  },
+  ocho_pct_anual:{
+    label:'8% anual (interés puro — art. 768 CCyCN)',
+    nota:'Tasa de interés puro para obligaciones dinerarias sin tasa pactada',
+    tipo:'fija_anual',
+    anual:0.08
+  },
+};
+
+let _act = {tasa:'scba_2357',capital:0,fechaDesde:'',fechaHasta:'',resultado:null};
+
+function getTasaMensual(tasaId, fechaISO){
+  const cfg = TASAS_CONFIG[tasaId];
+  if(!cfg) return 0;
+  if(cfg.tipo==='fija_anual') return cfg.anual/12;
+  // variable: buscar el valor vigente para esa fecha
+  let val = cfg.valores[0].mensual;
+  for(const v of cfg.valores){if(fechaISO>=v.desde)val=v.mensual;else break;}
+  return val;
+}
+
+function calcularActualizacion(){
+  const {tasa,capital,fechaDesde,fechaHasta} = _act;
+  if(!capital||!fechaDesde||!fechaHasta||fechaHasta<=fechaDesde) return null;
+  const cfg = TASAS_CONFIG[tasa];
+  // Calcular mes a mes
+  let d = new Date(fechaDesde+'T12:00:00');
+  const fin = new Date(fechaHasta+'T12:00:00');
+  let capitalActual = parseFloat(capital)||0;
+  const detalle = [];
+  let totalIntereses = 0;
+  while(d < fin){
+    const mesISO = d.toISOString().slice(0,7);
+    const tasaMes = getTasaMensual(tasa, d.toISOString().slice(0,10));
+    // Calcular fracción del mes si es el último
+    const siguiente = new Date(d.getFullYear(), d.getMonth()+1, 1);
+    const finMes = siguiente<fin?siguiente:fin;
+    const diasMes = (siguiente-new Date(d.getFullYear(),d.getMonth(),1))/86400000;
+    const diasPeriodo = (finMes-d)/86400000;
+    const fraccion = diasPeriodo/diasMes;
+    const interesesMes = capitalActual*tasaMes*fraccion;
+    totalIntereses += interesesMes;
+    detalle.push({mes:mesISO,tasa:tasaMes,interes:interesesMes,acumulado:capitalActual+totalIntereses});
+    d = siguiente;
+  }
+  return {capital:parseFloat(capital),totalIntereses,total:parseFloat(capital)+totalIntereses,detalle,cfg};
+}
+
+function renderActualizador(){
+  const container = document.getElementById('actualizador-content');
+  const res = _act.capital&&_act.fechaDesde&&_act.fechaHasta?calcularActualizacion():null;
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="section-title" style="margin-bottom:12px">Tasa de interés</div>
+          ${Object.entries(TASAS_CONFIG).map(([id,cfg])=>`
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid ${_act.tasa===id?'var(--accent)':'var(--border)'};border-radius:8px;background:${_act.tasa===id?'var(--gold-dim)':'var(--surface)'};margin-bottom:6px">
+              <input type="radio" name="act-tasa" value="${id}" ${_act.tasa===id?'checked':''} onchange="_act.tasa=this.value;renderActualizador()" style="margin-top:2px;flex-shrink:0">
+              <div><div style="font-size:13px;font-weight:600">${cfg.label}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${cfg.nota}</div></div>
+            </label>`).join('')}
+        </div>
+        <div class="card">
+          <div class="section-title" style="margin-bottom:12px">Datos del cálculo</div>
+          <div class="modal-grid">
+            <div class="form-group span2"><label class="form-label">Capital original (ARS) *</label>
+              <input type="number" class="form-input" id="act-capital" value="${_act.capital||''}" placeholder="0" onchange="_act.capital=parseFloat(this.value)||0;renderActualizador()"></div>
+            <div class="form-group"><label class="form-label">Desde (fecha de la deuda) *</label>
+              <input type="date" class="form-input" id="act-desde" value="${_act.fechaDesde}" onchange="_act.fechaDesde=this.value;renderActualizador()"></div>
+            <div class="form-group"><label class="form-label">Hasta *</label>
+              <input type="date" class="form-input" id="act-hasta" value="${_act.fechaHasta}" onchange="_act.fechaHasta=this.value;renderActualizador()"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        ${res?`
+          <div class="card" style="margin-bottom:14px;background:var(--gold-dim);border-color:var(--gold);text-align:center">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:4px">${res.cfg.label}</div>
+            <div style="font-size:13px;color:var(--text2)">Capital: ${formatMoney(res.capital)} · Intereses: ${formatMoney(res.totalIntereses)}</div>
+            <div style="font-size:28px;font-weight:800;color:var(--accent);font-family:'IBM Plex Mono',monospace;margin:8px 0">${formatMoney(res.total)}</div>
+            <div style="font-size:11px;color:var(--text3)">Capital + intereses al ${formatDate(_act.fechaHasta)}</div>
+            <button class="btn btn-primary" style="margin-top:10px" onclick="copiarActualizacion()">📋 Copiar resultado</button>
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-bottom:10px">Detalle mensual</div>
+            <div style="max-height:340px;overflow-y:auto">
+              <table style="width:100%;font-size:12px;border-collapse:collapse">
+                <tr style="color:var(--text3);text-align:left;border-bottom:1px solid var(--border)">
+                  <th style="padding:4px 6px">Período</th><th style="padding:4px 6px">Tasa</th><th style="padding:4px 6px;text-align:right">Interés</th><th style="padding:4px 6px;text-align:right">Acumulado</th>
+                </tr>
+                ${res.detalle.map(d=>`
+                  <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:4px 6px">${d.mes}</td>
+                    <td style="padding:4px 6px">${(d.tasa*100).toFixed(2)}%</td>
+                    <td style="padding:4px 6px;text-align:right;font-family:monospace">${formatMoney(d.interes)}</td>
+                    <td style="padding:4px 6px;text-align:right;font-family:monospace;font-weight:600">${formatMoney(d.acumulado)}</td>
+                  </tr>`).join('')}
+              </table>
+            </div>
+          </div>
+        `:`
+          <div class="card" style="text-align:center;padding:32px;color:var(--text3)">
+            <div style="font-size:32px">📈</div>
+            <div style="font-size:14px;font-weight:500;margin:10px 0 6px">Actualizador listo</div>
+            <div style="font-size:12px">Ingresá capital, tasa y período para calcular la actualización con intereses mes a mes.</div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function copiarActualizacion(){
+  const res = calcularActualizacion();
+  if(!res)return;
+  let txt = `ACTUALIZACIÓN DE VALOR — ${res.cfg.label}\n`;
+  txt += `Capital original: ${formatMoney(res.capital)}\n`;
+  txt += `Período: ${formatDate(_act.fechaDesde)} al ${formatDate(_act.fechaHasta)}\n`;
+  txt += `Total intereses: ${formatMoney(res.totalIntereses)}\n`;
+  txt += `TOTAL ACTUALIZADO: ${formatMoney(res.total)}\n`;
+  navigator.clipboard.writeText(txt).then(()=>toast('Resultado copiado ✓','success'));
+}
+
+// ══════════════════ ALIMENTOS ATRASADOS ══════════════════
+let _alim = {
+  porcentaje: 30,
+  cuotas: [],
+  tasaInteres: 'seis_pct_anual',
+  usarSMVM: true,
+};
+
+function renderAlimentos(){
+  const container = document.getElementById('alimentos-content');
+  const res = calcularAlimentos();
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="section-title" style="margin-bottom:12px">Parámetros de la cuota</div>
+          <div class="modal-grid">
+            <div class="form-group span2">
+              <label class="form-label">Base de cálculo</label>
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                  <input type="radio" name="alim-base" ${_alim.usarSMVM?'checked':''} onchange="_alim.usarSMVM=true;renderAlimentos()">
+                  % del SMVM (histórico)
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                  <input type="radio" name="alim-base" ${!_alim.usarSMVM?'checked':''} onchange="_alim.usarSMVM=false;renderAlimentos()">
+                  Monto fijo por cuota
+                </label>
+              </div>
+            </div>
+            <div class="form-group span2">
+              <label class="form-label">${_alim.usarSMVM?'Porcentaje del SMVM':'Monto de la cuota (ARS)'}</label>
+              <input type="number" class="form-input" id="alim-pct" value="${_alim.porcentaje}" min="1" ${_alim.usarSMVM?'max="100"':''} onchange="_alim.porcentaje=parseFloat(this.value)||0;renderAlimentos()">
+              ${_alim.usarSMVM?`<div style="font-size:11px;color:var(--text3);margin-top:4px">
+                SMVM actual (${todayISO().slice(0,7)}): ${formatMoney(getSMVM(todayISO()))} → Cuota: ${formatMoney(getSMVM(todayISO())*(_alim.porcentaje/100))}
+              </div>`:''}
+            </div>
+            <div class="form-group span2">
+              <label class="form-label">Tasa de interés por mora</label>
+              <select class="form-select" id="alim-tasa" onchange="_alim.tasaInteres=this.value;renderAlimentos()">
+                ${Object.entries(TASAS_CONFIG).map(([id,cfg])=>`<option value="${id}" ${_alim.tasaInteres===id?'selected':''}>${cfg.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="section-title">Cuotas adeudadas</div>
+            <button class="btn btn-primary btn-sm" onclick="agregarCuotaAlim()">+ Agregar</button>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Ingresá cada período adeudado (mes/año) y el monto si fue pago parcial.</div>
+          <div id="alim-cuotas-list">
+            ${_alim.cuotas.length===0?`<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Sin cuotas cargadas — hacé click en + Agregar</div>`:
+              _alim.cuotas.map((c,i)=>`
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px">
+                  <input type="month" class="form-input" value="${c.mes}" style="flex:1" onchange="_alim.cuotas[${i}].mes=this.value;renderAlimentos()">
+                  <input type="number" class="form-input" value="${c.pagado}" placeholder="Pagado $" style="width:120px" onchange="_alim.cuotas[${i}].pagado=parseFloat(this.value)||0;renderAlimentos()">
+                  <button class="seg-del-btn" onclick="_alim.cuotas.splice(${i},1);renderAlimentos()">✕</button>
+                </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        ${res.cuotas.length>0?`
+          <div class="card" style="margin-bottom:14px;background:var(--gold-dim);border-color:var(--gold);text-align:center">
+            <div style="font-size:13px;color:var(--text2);margin-bottom:4px">${res.cuotas.length} cuota${res.cuotas.length!==1?'s':''} adeudada${res.cuotas.length!==1?'s':''}</div>
+            <div style="font-size:12px;color:var(--text3)">Capital: ${formatMoney(res.totalCapital)} · Intereses: ${formatMoney(res.totalIntereses)}</div>
+            <div style="font-size:28px;font-weight:800;color:var(--accent);font-family:'IBM Plex Mono',monospace;margin:8px 0">${formatMoney(res.totalFinal)}</div>
+            <div style="font-size:11px;color:var(--text3)">Total adeudado al ${formatDate(todayISO())}</div>
+            <button class="btn btn-primary" style="margin-top:10px" onclick="copiarAlimentos()">📋 Copiar liquidación</button>
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-bottom:10px">Detalle por cuota</div>
+            <table style="width:100%;font-size:12px;border-collapse:collapse">
+              <tr style="color:var(--text3);text-align:left;border-bottom:1px solid var(--border)">
+                <th style="padding:4px 6px">Período</th><th style="padding:4px 6px">SMVM</th><th style="padding:4px 6px">Cuota</th><th style="padding:4px 6px">Pagado</th><th style="padding:4px 6px;text-align:right">Capital</th><th style="padding:4px 6px;text-align:right">Interés</th><th style="padding:4px 6px;text-align:right">Total</th>
+              </tr>
+              ${res.cuotas.map(c=>`
+                <tr style="border-bottom:1px solid var(--border)">
+                  <td style="padding:4px 6px;font-weight:500">${c.mes}</td>
+                  <td style="padding:4px 6px">${_alim.usarSMVM?formatMoney(c.smvm):'—'}</td>
+                  <td style="padding:4px 6px">${formatMoney(c.cuotaOriginal)}</td>
+                  <td style="padding:4px 6px;color:${c.pagado>0?'var(--green)':'var(--text3)'}">${c.pagado>0?formatMoney(c.pagado):'—'}</td>
+                  <td style="padding:4px 6px;text-align:right;font-family:monospace">${formatMoney(c.capital)}</td>
+                  <td style="padding:4px 6px;text-align:right;font-family:monospace">${formatMoney(c.interes)}</td>
+                  <td style="padding:4px 6px;text-align:right;font-family:monospace;font-weight:600">${formatMoney(c.total)}</td>
+                </tr>`).join('')}
+              <tr style="font-weight:700;border-top:2px solid var(--border)">
+                <td colspan="4" style="padding:6px">TOTAL</td>
+                <td style="padding:6px;text-align:right;font-family:monospace">${formatMoney(res.totalCapital)}</td>
+                <td style="padding:6px;text-align:right;font-family:monospace">${formatMoney(res.totalIntereses)}</td>
+                <td style="padding:6px;text-align:right;font-family:monospace;color:var(--accent)">${formatMoney(res.totalFinal)}</td>
+              </tr>
+            </table>
+          </div>
+        `:`
+          <div class="card" style="text-align:center;padding:32px;color:var(--text3)">
+            <div style="font-size:32px">👨‍👧</div>
+            <div style="font-size:14px;font-weight:500;margin:10px 0 6px">Calculadora de alimentos atrasados</div>
+            <div style="font-size:12px">Agregá las cuotas adeudadas para calcular el total con intereses moratorios, usando el SMVM histórico vigente a cada período.</div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function agregarCuotaAlim(){
+  // Agregar el mes anterior al último cargado, o el mes actual
+  const ultimo = _alim.cuotas.length>0?_alim.cuotas[_alim.cuotas.length-1].mes:'';
+  let siguienteMes;
+  if(ultimo){
+    const [y,m]=ultimo.split('-').map(Number);
+    const d=new Date(y,m,1); // primer día del mes siguiente
+    siguienteMes=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  } else {
+    siguienteMes=todayISO().slice(0,7);
+  }
+  _alim.cuotas.push({mes:siguienteMes,pagado:0});
+  renderAlimentos();
+}
+
+function calcularAlimentos(){
+  const hoy=todayISO();
+  const cuotasCalc=_alim.cuotas.map(c=>{
+    const fechaPrimerDia=c.mes+'-01';
+    const smvm=getSMVM(fechaPrimerDia);
+    const cuotaOriginal=_alim.usarSMVM?smvm*(_alim.porcentaje/100):_alim.porcentaje;
+    const capital=Math.max(cuotaOriginal-(c.pagado||0),0);
+    // Calcular intereses desde el 1 del mes hasta hoy
+    let interes=0;
+    if(capital>0&&fechaPrimerDia<hoy){
+      const resInt=calcularInteresesSimple(capital,fechaPrimerDia,hoy,_alim.tasaInteres);
+      interes=resInt;
+    }
+    return{mes:c.mes,smvm,cuotaOriginal,pagado:c.pagado||0,capital,interes,total:capital+interes};
+  });
+  const totalCapital=cuotasCalc.reduce((s,c)=>s+c.capital,0);
+  const totalIntereses=cuotasCalc.reduce((s,c)=>s+c.interes,0);
+  return{cuotas:cuotasCalc,totalCapital,totalIntereses,totalFinal:totalCapital+totalIntereses};
+}
+
+function calcularInteresesSimple(capital,desdeISO,hastaISO,tasaId){
+  let d=new Date(desdeISO+'T12:00:00');
+  const fin=new Date(hastaISO+'T12:00:00');
+  let total=0;
+  while(d<fin){
+    const siguiente=new Date(d.getFullYear(),d.getMonth()+1,1);
+    const finMes=siguiente<fin?siguiente:fin;
+    const diasMes=(siguiente-new Date(d.getFullYear(),d.getMonth(),1))/86400000;
+    const diasPeriodo=(finMes-d)/86400000;
+    total+=capital*getTasaMensual(tasaId,d.toISOString().slice(0,10))*(diasPeriodo/diasMes);
+    d=siguiente;
+  }
+  return total;
+}
+
+function copiarAlimentos(){
+  const res=calcularAlimentos();
+  if(!res.cuotas.length)return;
+  let txt=`LIQUIDACIÓN DE ALIMENTOS ATRASADOS\n`;
+  txt+=`Base: ${_alim.usarSMVM?`${_alim.porcentaje}% del SMVM histórico`:`Monto fijo $ ${_alim.porcentaje}`}\n`;
+  txt+=`Tasa de interés: ${TASAS_CONFIG[_alim.tasaInteres]?.label}\n`;
+  txt+=`Fecha de cálculo: ${formatDate(todayISO())}\n\n`;
+  txt+='─'.repeat(65)+'\n';
+  txt+=`Período      SMVM vigente   Cuota    Pagado    Capital   Interés   Total\n`;
+  txt+='─'.repeat(65)+'\n';
+  res.cuotas.forEach(c=>{
+    txt+=`${c.mes}   ${String(formatMoney(c.smvm)).padEnd(14)} ${String(formatMoney(c.cuotaOriginal)).padEnd(10)} ${String(c.pagado>0?formatMoney(c.pagado):'—').padEnd(10)} ${String(formatMoney(c.capital)).padEnd(10)} ${String(formatMoney(c.interes)).padEnd(10)} ${formatMoney(c.total)}\n`;
+  });
+  txt+='─'.repeat(65)+'\n';
+  txt+=`TOTALES:${' '.repeat(33)}${String(formatMoney(res.totalCapital)).padEnd(10)} ${String(formatMoney(res.totalIntereses)).padEnd(10)} ${formatMoney(res.totalFinal)}\n`;
+  navigator.clipboard.writeText(txt).then(()=>toast('Liquidación copiada ✓','success'));
 }
 
 // ══════════════════ ESTADÍSTICAS ══════════════════
