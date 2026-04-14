@@ -404,6 +404,10 @@ canvas{max-width:100%;}
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Calculadoras
     </div>
+    <div class="nav-item" onclick="navigate('configuracion')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configuración
+    </div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
@@ -656,6 +660,13 @@ canvas{max-width:100%;}
     <div id="liquidacion-content" style="display:none"></div>
     <div id="actualizador-content" style="display:none"></div>
     <div id="alimentos-content" style="display:none"></div>
+  </div>
+
+  <div id="page-configuracion" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Configuración</div><div class="page-subtitle">Ajustes compartidos del estudio</div></div>
+    </div>
+    <div id="configuracion-content"></div>
   </div>
 
 </div>
@@ -948,9 +959,9 @@ canvas{max-width:100%;}
 // ══════════════════ CONFIG ══════════════════
 const CLIENT_ID = '604855232321-hah4j4jivl6r66s18hspa91jbq22li5q.apps.googleusercontent.com';
 const SHEET_ID  = '1ZZtoSbPsGIzIGeBWNl1KwoUWpyvbzb46EV9ms2JEvoc';
-const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive';
 const DRIVE_ROOT_FOLDER_NAME = 'LexTrack — Expedientes';
-const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas', clientes:'Clientes' };
+const TABS = { causas:'Causas', audiencias:'Audiencias', alertas:'Alertas', tareas:'Tareas', cautelares:'Cautelares', honorarios:'Honorarios', plantillas:'Plantillas', clientes:'Clientes', config:'Configuracion' };
 
 // ══════════════════ BASE DE DATOS JUZGADOS ══════════════════
 // PBA: organizado por fuero → localidad → lista de juzgados
@@ -1682,14 +1693,13 @@ async function finishLogin(){
   await ensureSheets();
   showLoading('Cargando datos...');
   await loadAllData();
+  await loadSharedConfig();   // carga ID de carpeta Drive compartida desde Sheet
   hideLoading();
   document.getElementById('sidebar').style.display = 'flex';
   document.getElementById('main').style.display = 'block';
   seedDefaultPlantillas();
   renderDashboard(); updateBadges();
-  // Start session timer display
   startSessionTimer();
-  // Actualizar valores Jus/UMA en background (no bloquea la carga)
   loadConfig();
   fetchValoresOficiales();
 }
@@ -1859,7 +1869,7 @@ function navigate(page){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('page-'+page);
   if(pg)pg.classList.add('active');
-  const navMap={dashboard:0,causas:1,tareas:2,agenda:3,alertas:4,cautelares:5,honorarios:6,plantillas:7,estadisticas:8,clientes:9,plazos:10};
+  const navMap={dashboard:0,causas:1,tareas:2,agenda:3,alertas:4,cautelares:5,honorarios:6,plantillas:7,estadisticas:8,clientes:9,plazos:10,configuracion:11};
   const navItems=document.querySelectorAll('.nav-item');
   if(navMap[page]!==undefined&&navItems[navMap[page]])navItems[navMap[page]].classList.add('active');
   state.currentPage=page;
@@ -1909,6 +1919,7 @@ function renderPage(p){
   else if(p==='estadisticas')renderEstadisticas();
   else if(p==='clientes')renderClientes();
   else if(p==='plazos'){switchCalcTab('plazos');}
+  else if(p==='configuracion')renderConfiguracion();
 }
 
 // ══════════════════ UTILS ══════════════════
@@ -3243,14 +3254,44 @@ async function driveDelete(fileId){
   });
 }
 
-// ── Obtener o crear carpeta raíz LexTrack ─────────────────────────────
+// ── Configuración compartida (guardada en Sheet "Configuracion") ──────
+let _sharedConfig = { driveFolderId: '' };
+
+async function loadSharedConfig(){
+  try{
+    const r = await sheetsGet(`${TABS.config}!A1:B20`);
+    const rows = r.values||[];
+    rows.forEach(row=>{
+      if(row[0]==='driveFolderId') _sharedConfig.driveFolderId = row[1]||'';
+    });
+    // Sincronizar con cache local
+    if(_sharedConfig.driveFolderId) _driveFolderId = _sharedConfig.driveFolderId;
+  }catch(e){ console.log('Config sheet not loaded:', e.message); }
+}
+
+async function saveSharedConfig(){
+  try{
+    await sheetsClear(`${TABS.config}!A1:B20`);
+    const rows = Object.entries(_sharedConfig).map(([k,v])=>[k,v]);
+    if(rows.length) await sheetsUpdate(`${TABS.config}!A1`, rows);
+    // Actualizar Drive folder cache
+    if(_sharedConfig.driveFolderId) _driveFolderId = _sharedConfig.driveFolderId;
+    toast('Configuración guardada ✓','success');
+  }catch(e){ toast('Error al guardar: '+e.message,'error'); }
+}
+
+// ── Obtener carpeta raíz (usa ID compartida si está configurada) ───────
 async function getDriveRootFolder(){
+  // Si hay ID configurada, usarla directamente
   if(_driveFolderId) return _driveFolderId;
-  // Buscar carpeta existente
+  if(_sharedConfig.driveFolderId){
+    _driveFolderId = _sharedConfig.driveFolderId;
+    return _driveFolderId;
+  }
+  // Si no hay ID configurada: crear carpeta propia y sugerir compartirla
   const q = encodeURIComponent(`name='${DRIVE_ROOT_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
   const res = await driveGet(`files?q=${q}&fields=files(id,name)&spaces=drive`);
-  if(res.files&&res.files.length){_driveFolderId=res.files[0].id;return _driveFolderId;}
-  // Crear carpeta
+  if(res.files&&res.files.length){ _driveFolderId=res.files[0].id; return _driveFolderId; }
   const created = await drivePost('files',{name:DRIVE_ROOT_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'});
   _driveFolderId = created.id;
   return _driveFolderId;
@@ -4678,6 +4719,164 @@ function copiarAlimentos(){
   txt+='─'.repeat(65)+'\n';
   txt+=`TOTALES:${' '.repeat(33)}${String(formatMoney(res.totalCapital)).padEnd(10)} ${String(formatMoney(res.totalIntereses)).padEnd(10)} ${formatMoney(res.totalFinal)}\n`;
   navigator.clipboard.writeText(txt).then(()=>toast('Liquidación copiada ✓','success'));
+}
+
+// ══════════════════ CONFIGURACIÓN ══════════════════
+function renderConfiguracion(){
+  const container = document.getElementById('configuracion-content');
+  const folderUrl = _sharedConfig.driveFolderId
+    ? `https://drive.google.com/drive/folders/${_sharedConfig.driveFolderId}`
+    : null;
+
+  container.innerHTML = `
+    <!-- Carpeta compartida de Drive -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+        <div style="font-size:28px;flex-shrink:0">📂</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:4px">Carpeta compartida de Google Drive</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">
+            Para que todos los abogados del estudio puedan ver los mismos archivos adjuntos a las causas, 
+            necesitan usar <strong>una única carpeta de Drive compartida</strong> entre todas las cuentas.<br>
+            Una vez configurada, el ID se guarda en el Google Sheet y todos lo usan automáticamente.
+          </div>
+        </div>
+      </div>
+
+      ${_sharedConfig.driveFolderId ? `
+        <div style="background:var(--green-dim);border:1px solid var(--green);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">✅</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--green)">Carpeta compartida configurada</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:monospace">${_sharedConfig.driveFolderId}</div>
+            <a href="${folderUrl}" target="_blank" style="font-size:12px;color:var(--accent)">Ver carpeta en Drive ↗</a>
+          </div>
+        </div>
+      ` : `
+        <div style="background:var(--orange-dim);border:1px solid var(--orange);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">⚠️</span>
+          <div style="font-size:13px;color:var(--text2)">
+            <strong>Sin carpeta compartida configurada.</strong> Los archivos subidos por cada usuario solo son visibles por ellos mismos.
+          </div>
+        </div>
+      `}
+
+      <div style="background:var(--surface2);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Cómo configurarlo (una sola vez)</div>
+        <ol style="font-size:13px;color:var(--text2);padding-left:18px;line-height:2">
+          <li>Uno de los abogados crea una carpeta en su <a href="https://drive.google.com" target="_blank" style="color:var(--accent)">Google Drive</a> (ej: "LexTrack — Expedientes")</li>
+          <li>Hace click derecho en la carpeta → <strong>Compartir</strong> → agrega el email del otro abogado como <strong>Editor</strong></li>
+          <li>Abre la carpeta en Drive y copia el <strong>ID de la URL</strong>:<br>
+            <code style="background:var(--surface3);padding:2px 8px;border-radius:4px;font-size:11px">drive.google.com/drive/folders/<strong style="color:var(--accent)">1AbCdEfGhIjK...</strong></code>
+          </li>
+          <li>Pega el ID abajo y guardá</li>
+        </ol>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <div style="flex:1">
+          <label class="form-label">ID de la carpeta compartida de Drive</label>
+          <input type="text" class="form-input" id="cfg-drive-id" value="${_sharedConfig.driveFolderId||''}" placeholder="Ej: 1AbCdEfGhIjKlMnOpQrStUvWxYz">
+        </div>
+        <button class="btn btn-primary" onclick="guardarDriveFolder()">Guardar y aplicar</button>
+        ${_sharedConfig.driveFolderId?`<button class="btn btn-ghost" onclick="probarDriveFolder()">Probar conexión</button>`:''}
+      </div>
+      <div id="cfg-drive-status" style="margin-top:8px;font-size:12px;display:none"></div>
+    </div>
+
+    <!-- Valores Jus / UMA -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">⚖️ Valores Jus y UMA</div>
+      <div class="modal-grid">
+        <div class="form-group">
+          <label class="form-label">Jus arancelario PBA (Ley 14.967)</label>
+          <input type="number" class="form-input" id="cfg-jus" value="${CONFIG.valorJus}">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Vigente desde: ${CONFIG.jus_vigencia||'—'} · <a href="https://www.scba.gov.ar/paginas.asp?id=41320" target="_blank" style="color:var(--accent)">Ver SCBA ↗</a></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">UMA PJN (Ley 27.423)</label>
+          <input type="number" class="form-input" id="cfg-uma" value="${CONFIG.valorUMA}">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Vigente desde: ${CONFIG.uma_vigencia||'—'} · <a href="https://www.cpacf.org.ar/noticia/5201/valores-uma-pjn-ley-27423" target="_blank" style="color:var(--accent)">Ver CPACF ↗</a></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:8px" onclick="guardarValoresJusUMA()">Actualizar valores</button>
+    </div>
+
+    <!-- Info del estudio -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">ℹ️ LexTrack</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.7">
+        Google Sheet ID: <code style="background:var(--surface2);padding:1px 6px;border-radius:3px">${'${SHEET_ID}'}</code><br>
+        Sincronización: todos los cambios se guardan automáticamente en el Sheet compartido.<br>
+        Drive: los archivos adjuntos se guardan en Google Drive según la carpeta configurada arriba.
+      </div>
+    </div>
+  `;
+
+  // Insert real SHEET_ID
+  container.innerHTML = container.innerHTML.replace('${SHEET_ID}', typeof SHEET_ID !== 'undefined' ? SHEET_ID : '—');
+}
+
+async function guardarDriveFolder(){
+  const id = document.getElementById('cfg-drive-id').value.trim();
+  const status = document.getElementById('cfg-drive-status');
+  if(!id){ alert('Ingresá el ID de la carpeta.'); return; }
+
+  status.style.display='';
+  status.innerHTML='⏳ Verificando acceso a la carpeta...';
+  status.style.color='var(--text2)';
+
+  try{
+    // Verify access by trying to get folder metadata
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,mimeType`, {
+      headers:{Authorization:'Bearer '+accessToken}
+    });
+    if(!r.ok) throw new Error(`No se pudo acceder (${r.status}). Verificá que compartiste la carpeta con esta cuenta.`);
+    const data = await r.json();
+    if(data.mimeType !== 'application/vnd.google-apps.folder') throw new Error('El ID no corresponde a una carpeta.');
+
+    _sharedConfig.driveFolderId = id;
+    _driveFolderId = id;
+    _causaFolders = {}; // reset cache
+    await saveSharedConfig();
+    status.innerHTML=`✅ Carpeta "<strong>${data.name}</strong>" conectada correctamente. Ahora todos los abogados con acceso al Sheet verán los mismos archivos.`;
+    status.style.color='var(--green)';
+    renderConfiguracion();
+  }catch(e){
+    status.innerHTML=`❌ ${e.message}`;
+    status.style.color='var(--red)';
+  }
+}
+
+async function probarDriveFolder(){
+  const status = document.getElementById('cfg-drive-status');
+  status.style.display='';
+  status.innerHTML='⏳ Probando conexión...';
+  try{
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${_sharedConfig.driveFolderId}?fields=id,name`, {
+      headers:{Authorization:'Bearer '+accessToken}
+    });
+    const data = await r.json();
+    if(r.ok){
+      status.innerHTML=`✅ Conexión OK — carpeta: "${data.name}"`;
+      status.style.color='var(--green)';
+    } else {
+      status.innerHTML=`❌ Sin acceso (${r.status}) — verificá que esta cuenta tiene permisos de Editor sobre la carpeta.`;
+      status.style.color='var(--red)';
+    }
+  }catch(e){
+    status.innerHTML=`❌ Error: ${e.message}`;
+    status.style.color='var(--red)';
+  }
+}
+
+function guardarValoresJusUMA(){
+  const jus = parseFloat(document.getElementById('cfg-jus').value)||CONFIG.valorJus;
+  const uma = parseFloat(document.getElementById('cfg-uma').value)||CONFIG.valorUMA;
+  CONFIG.valorJus = jus;
+  CONFIG.valorUMA = uma;
+  saveConfig();
+  toast('Valores Jus/UMA actualizados ✓','success');
 }
 
 // ══════════════════ ESTADÍSTICAS ══════════════════
