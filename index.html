@@ -3279,9 +3279,15 @@ async function loadSharedConfig(){
     const r = await sheetsGet(`${TABS.config}!A1:B20`);
     const rows = r.values||[];
     rows.forEach(row=>{
-      if(row[0]==='driveFolderId') _sharedConfig.driveFolderId = row[1]||'';
+      if(row[0]==='driveFolderId'){
+        // Limpiar el ID por si fue guardado con parámetros de URL
+        let id = row[1]||'';
+        const m = id.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+        if(m) id = m[1];
+        id = id.split('?')[0].split('&')[0].trim();
+        _sharedConfig.driveFolderId = id;
+      }
     });
-    // Sincronizar con cache local
     if(_sharedConfig.driveFolderId) _driveFolderId = _sharedConfig.driveFolderId;
   }catch(e){ console.log('Config sheet not loaded:', e.message); }
 }
@@ -4802,10 +4808,11 @@ function renderConfiguracion(){
         <ol style="font-size:13px;color:var(--text2);padding-left:18px;line-height:2">
           <li>Uno de los abogados crea una carpeta en su <a href="https://drive.google.com" target="_blank" style="color:var(--accent)">Google Drive</a> (ej: "LexTrack — Expedientes")</li>
           <li>Hace click derecho en la carpeta → <strong>Compartir</strong> → agrega el email del otro abogado como <strong>Editor</strong></li>
-          <li>Abre la carpeta en Drive y copia el <strong>ID de la URL</strong>:<br>
-            <code style="background:var(--surface3);padding:2px 8px;border-radius:4px;font-size:11px">drive.google.com/drive/folders/<strong style="color:var(--accent)">1AbCdEfGhIjK...</strong></code>
+          <li>Abre la carpeta en Drive y copiá la <strong>URL completa</strong> o solo el <strong>ID</strong> (la parte después de /folders/):<br>
+            <code style="background:var(--surface3);padding:2px 8px;border-radius:4px;font-size:11px">drive.google.com/drive/folders/<strong style="color:var(--accent)">1AbCdEfGhIjK...</strong>?hl=es</code><br>
+            <span style="font-size:11px;color:var(--text3)">✓ Podés pegar la URL completa — la app extrae el ID automáticamente</span>
           </li>
-          <li>Pega el ID abajo y guardá</li>
+          <li>Pegá la URL o el ID abajo y guardá</li>
         </ol>
       </div>
 
@@ -4854,28 +4861,45 @@ function renderConfiguracion(){
 }
 
 async function guardarDriveFolder(){
-  const id = document.getElementById('cfg-drive-id').value.trim();
+  let raw = document.getElementById('cfg-drive-id').value.trim();
   const status = document.getElementById('cfg-drive-status');
-  if(!id){ alert('Ingresá el ID de la carpeta.'); return; }
+
+  // Limpiar el ID: puede ser URL completa o ID puro con parámetros extra
+  // Formatos posibles:
+  //   https://drive.google.com/drive/folders/1AbCdEf?hl=es
+  //   1AbCdEf?hl=es
+  //   1AbCdEf
+  let id = raw;
+  // Si es URL, extraer el ID de la parte /folders/
+  const folderMatch = raw.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if(folderMatch) id = folderMatch[1];
+  // Quitar cualquier parámetro de URL (todo lo que viene después de ? o &)
+  id = id.split('?')[0].split('&')[0].trim();
+
+  if(!id){ alert('Ingresá el ID de la carpeta o la URL completa de Drive.'); return; }
 
   status.style.display='';
-  status.innerHTML='⏳ Verificando acceso a la carpeta...';
+  status.innerHTML=`⏳ Verificando acceso a la carpeta (ID: <code>${id}</code>)...`;
   status.style.color='var(--text2)';
 
   try{
-    // Verify access by trying to get folder metadata
-    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,mimeType`, {
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,mimeType&supportsAllDrives=true`, {
       headers:{Authorization:'Bearer '+accessToken}
     });
-    if(!r.ok) throw new Error(`No se pudo acceder (${r.status}). Verificá que compartiste la carpeta con esta cuenta.`);
+    if(!r.ok){
+      const err = await r.json().catch(()=>({}));
+      throw new Error(`No se pudo acceder (${r.status}: ${err?.error?.message||'sin detalles'}). Verificá que compartiste la carpeta con esta cuenta de Google.`);
+    }
     const data = await r.json();
-    if(data.mimeType !== 'application/vnd.google-apps.folder') throw new Error('El ID no corresponde a una carpeta.');
+    if(data.mimeType !== 'application/vnd.google-apps.folder') throw new Error('El ID no corresponde a una carpeta de Drive.');
 
     _sharedConfig.driveFolderId = id;
     _driveFolderId = id;
-    _causaFolders = {}; // reset cache
+    _causaFolders = {};
     await saveSharedConfig();
-    status.innerHTML=`✅ Carpeta "<strong>${data.name}</strong>" conectada correctamente. Ahora todos los abogados con acceso al Sheet verán los mismos archivos.`;
+    // Actualizar el campo con el ID limpio
+    document.getElementById('cfg-drive-id').value = id;
+    status.innerHTML=`✅ Carpeta "<strong>${data.name}</strong>" conectada. ID guardado: <code>${id}</code>`;
     status.style.color='var(--green)';
     renderConfiguracion();
   }catch(e){
