@@ -3220,27 +3220,37 @@ let _driveFolderId = null;      // carpeta raíz LexTrack en Drive
 let _causaFolders = {};         // cache: causaId → folderId
 
 // ── Drive API helpers ─────────────────────────────────────────────────
+// supportsAllDrives=true es necesario para carpetas compartidas entre cuentas
 async function driveGet(path){
-  const r = await fetch('https://www.googleapis.com/drive/v3/'+path, {
+  const sep = path.includes('?')?'&':'?';
+  const r = await fetch(`https://www.googleapis.com/drive/v3/${path}${sep}supportsAllDrives=true&includeItemsFromAllDrives=true`, {
     headers:{Authorization:'Bearer '+accessToken}
   });
   if(!r.ok) throw new Error('Drive error '+r.status);
   return r.json();
 }
-async function drivePost(path, body, isUpload=false){
-  const url = isUpload
-    ? 'https://www.googleapis.com/upload/drive/v3/'+path+'?uploadType=multipart'
-    : 'https://www.googleapis.com/drive/v3/'+path;
-  const r = await fetch(url, {
+async function drivePost(path, body){
+  const sep = path.includes('?')?'&':'?';
+  const r = await fetch(`https://www.googleapis.com/drive/v3/${path}${sep}supportsAllDrives=true`, {
     method:'POST',
-    headers:{Authorization:'Bearer '+accessToken,'Content-Type': isUpload?undefined:'application/json'},
-    body: isUpload ? body : JSON.stringify(body)
+    headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+    body: JSON.stringify(body)
   });
   if(!r.ok){const t=await r.text();throw new Error('Drive error '+r.status+': '+t);}
   return r.json();
 }
+async function driveUpload(metadata, fileBlob){
+  // Upload endpoint separado con supportsAllDrives
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,size,mimeType,createdTime,description,webViewLink', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+accessToken,'Content-Type':fileBlob.type},
+    body: fileBlob
+  });
+  if(!r.ok){const t=await r.text();throw new Error('Upload error '+r.status+': '+t);}
+  return r.json();
+}
 async function drivePatch(fileId, body){
-  const r = await fetch('https://www.googleapis.com/drive/v3/files/'+fileId, {
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`, {
     method:'PATCH',
     headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
     body: JSON.stringify(body)
@@ -3249,7 +3259,7 @@ async function drivePatch(fileId, body){
   return r.json();
 }
 async function driveDelete(fileId){
-  await fetch('https://www.googleapis.com/drive/v3/files/'+fileId+'?supportsAllDrives=true', {
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`, {
     method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
   });
 }
@@ -3290,7 +3300,7 @@ async function getDriveRootFolder(){
   }
   // Si no hay ID configurada: crear carpeta propia y sugerir compartirla
   const q = encodeURIComponent(`name='${DRIVE_ROOT_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const res = await driveGet(`files?q=${q}&fields=files(id,name)&spaces=drive`);
+  const res = await driveGet(`files?q=${q}&fields=files(id,name)&spaces=drive&corpora=allDrives`);
   if(res.files&&res.files.length){ _driveFolderId=res.files[0].id; return _driveFolderId; }
   const created = await drivePost('files',{name:DRIVE_ROOT_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'});
   _driveFolderId = created.id;
@@ -3305,7 +3315,7 @@ async function getCausaFolder(causaId){
   const folderName = `[${causa?.numero||causaId.slice(-6)}] ${(causa?.caratula||'Sin nombre').slice(0,60)}`;
   // Buscar carpeta existente
   const q = encodeURIComponent(`name='${folderName.replace(/'/g,"\\'")}' and '${rootId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const res = await driveGet(`files?q=${q}&fields=files(id,name)&spaces=drive`);
+  const res = await driveGet(`files?q=${q}&fields=files(id,name)&spaces=drive&corpora=allDrives`);
   if(res.files&&res.files.length){_causaFolders[causaId]=res.files[0].id;return _causaFolders[causaId];}
   // Crear carpeta
   const created = await drivePost('files',{name:folderName,mimeType:'application/vnd.google-apps.folder',parents:[rootId]});
@@ -3318,7 +3328,7 @@ async function listarArchivosCausa(causaId){
   try{
     const folderId = await getCausaFolder(causaId);
     const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
-    const res = await driveGet(`files?q=${q}&fields=files(id,name,size,mimeType,createdTime,description,webViewLink,iconLink)&orderBy=createdTime desc&spaces=drive`);
+    const res = await driveGet(`files?q=${q}&fields=files(id,name,size,mimeType,createdTime,description,webViewLink,iconLink)&orderBy=createdTime desc&spaces=drive&corpora=allDrives`);
     return res.files||[];
   }catch(e){console.error('Error listando archivos:',e);return[];}
 }
@@ -3326,26 +3336,39 @@ async function listarArchivosCausa(causaId){
 // ── Subir archivo ─────────────────────────────────────────────────────
 async function subirArchivo(causaId, file, categoria){
   const folderId = await getCausaFolder(causaId);
-  // Nombre con prefijo de categoría
   const catInfo = ARCHIVO_CATS.find(c=>c.id===categoria)||ARCHIVO_CATS[ARCHIVO_CATS.length-1];
   const nombreFinal = `[${catInfo.label}] ${file.name}`;
   const metadata = {name:nombreFinal, description:categoria, parents:[folderId]};
-  // Multipart upload
-  const boundary = '-------314159265358979323846';
-  const delimiter = '\r\n--'+boundary+'\r\n';
-  const closeDelim = '\r\n--'+boundary+'--';
+
+  // Multipart upload manual con boundary correcto
+  const boundary = 'lextrack_boundary_' + Date.now();
   const metaStr = JSON.stringify(metadata);
   const fileData = await file.arrayBuffer();
-  const body = new Blob([
-    delimiter,'Content-Type: application/json\r\n\r\n',metaStr,
-    delimiter,`Content-Type: ${file.type||'application/octet-stream'}\r\n\r\n`,
-    fileData,closeDelim
-  ],{type:'multipart/related; boundary="'+boundary+'"'});
-  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,mimeType,createdTime,description,webViewLink', {
-    method:'POST',
-    headers:{Authorization:'Bearer '+accessToken,'Content-Type':'multipart/related; boundary="'+boundary+'"'},
-    body
-  });
+
+  const encoder = new TextEncoder();
+  const parts = [
+    encoder.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metaStr}\r\n`),
+    encoder.encode(`--${boundary}\r\nContent-Type: ${file.type||'application/octet-stream'}\r\n\r\n`),
+    new Uint8Array(fileData),
+    encoder.encode(`\r\n--${boundary}--`),
+  ];
+  const totalLen = parts.reduce((s,p)=>s+p.byteLength,0);
+  const merged = new Uint8Array(totalLen);
+  let offset=0;
+  for(const p of parts){merged.set(p,offset);offset+=p.byteLength;}
+
+  const r = await fetch(
+    `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,size,mimeType,createdTime,description,webViewLink`,
+    {
+      method:'POST',
+      headers:{
+        Authorization:'Bearer '+accessToken,
+        'Content-Type':`multipart/related; boundary=${boundary}`,
+        'Content-Length': String(totalLen),
+      },
+      body: merged,
+    }
+  );
   if(!r.ok){const t=await r.text();throw new Error('Upload error '+r.status+': '+t);}
   return r.json();
 }
